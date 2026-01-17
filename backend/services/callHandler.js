@@ -1,7 +1,7 @@
 const OpenAI = require('openai');
 const db = require('../db');
 const ttsService = require('./ttsService');
-const { getVoiceForCall, setVoiceForCall } = require('../routes/voice');
+const { getVoiceForCall, setVoiceForCall, getDefaultVoice } = require('../routes/voice');
 const twilio = require('twilio');
 
 class CallHandler {
@@ -28,8 +28,8 @@ class CallHandler {
     this.personality = process.env.AI_PERSONALITY || 'confused_grandparent';
     this.model = process.env.OPENAI_MODEL || 'gpt-4-turbo-preview';
 
-    // Set default voice (Thalia - confused grandparent matches personality)
-    setVoiceForCall(this.callSid, 'aura-2-thalia-en');
+    // Set voice for this call to the current default
+    setVoiceForCall(this.callSid, getDefaultVoice());
   }
 
   /**
