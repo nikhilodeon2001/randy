@@ -29,7 +29,7 @@ async function initDb() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS transcripts (
         id SERIAL PRIMARY KEY,
-        call_sid VARCHAR(255) NOT NULL REFERENCES calls(call_sid) ON DELETE CASCADE,
+        call_sid VARCHAR(255) UNIQUE NOT NULL REFERENCES calls(call_sid) ON DELETE CASCADE,
         messages JSONB NOT NULL,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );

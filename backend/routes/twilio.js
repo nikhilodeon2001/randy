@@ -75,6 +75,24 @@ router.post('/gather', async (req, res) => {
       throw new Error('No call handler found for this call');
     }
 
+    // Check if we actually got speech
+    if (!SpeechResult || SpeechResult === 'undefined' || SpeechResult.trim() === '') {
+      console.log('No speech detected, prompting again');
+      twiml.say({ voice: 'Polly.Joanna' }, 'Hello? I didn\'t hear you. Are you there?');
+      twiml.gather({
+        input: 'speech',
+        action: '/twilio/gather',
+        method: 'POST',
+        speechTimeout: '3',
+        speechModel: 'phone_call',
+        enhanced: true
+      });
+      twiml.redirect('/twilio/gather');
+      res.type('text/xml');
+      res.send(twiml.toString());
+      return;
+    }
+
     // Process the caller's speech and get AI response
     const aiResponse = await callHandler.processUserSpeech(SpeechResult);
 
