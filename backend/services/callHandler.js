@@ -26,7 +26,7 @@ class CallHandler {
 
     // AI Configuration
     this.personality = process.env.AI_PERSONALITY || 'confused_grandparent';
-    this.model = process.env.OPENAI_MODEL || 'gpt-4o-mini'; // Fast and cheap, perfect for real-time calls
+    this.model = process.env.OPENAI_MODEL || 'gpt-3.5-turbo'; // Fastest model for minimal latency
 
     // Set voice for this call to the current default
     setVoiceForCall(this.callSid, getDefaultVoice());
@@ -148,25 +148,28 @@ class CallHandler {
     try {
       const systemPrompt = this.getSystemPrompt();
 
+      // Only keep last 6 messages (3 exchanges) to reduce latency
+      const recentHistory = this.conversationHistory.slice(-6);
+
       const messages = [
         { role: 'system', content: systemPrompt },
-        ...this.conversationHistory.map(msg => ({
+        ...recentHistory.map(msg => ({
           role: msg.role,
           content: msg.content
         }))
       ];
 
-      console.log(`⏱️ Starting GPT-4o-mini request for ${this.callSid}...`);
+      console.log(`⏱️ Starting GPT request (${this.model}) for ${this.callSid}...`);
       const completion = await this.openai.chat.completions.create({
         model: this.model,
         messages: messages,
         temperature: 0.8,
-        max_tokens: 40, // Shorter = faster generation and faster TTS
+        max_tokens: 20, // Ultra-short for minimal latency
       });
 
       const duration = Date.now() - startTime;
       const response = completion.choices[0]?.message?.content || "I didn't catch that. Could you repeat?";
-      console.log(`✅ GPT-4o-mini completed in ${duration}ms: "${response}"`);
+      console.log(`✅ GPT completed in ${duration}ms: "${response}"`);
 
       return response;
     } catch (error) {
