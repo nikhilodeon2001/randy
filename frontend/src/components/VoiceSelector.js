@@ -90,31 +90,6 @@ function VoiceSelector({ callSid, onVoiceChange }) {
     }
   };
 
-  const renderVoiceGroup = (groupName, voiceIds) => {
-    return (
-      <div key={groupName} className="voice-group">
-        <h4>{groupName}</h4>
-        <div className="voice-options">
-          {voiceIds.map(id => (
-            <label key={id} className="voice-option">
-              <input
-                type="radio"
-                name="voice"
-                value={id}
-                checked={selectedVoiceId === id}
-                onChange={() => setSelectedVoiceId(id)}
-                disabled={isChanging}
-              />
-              <span className="voice-label">
-                <strong>{id}.</strong> {voices[id]?.description || 'Unknown'}
-              </span>
-            </label>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
   if (isLoading) {
     return <div className="voice-selector loading">Loading voices...</div>;
   }
@@ -123,12 +98,6 @@ function VoiceSelector({ callSid, onVoiceChange }) {
     <div className="voice-selector">
       <div className="voice-selector-header">
         <h3>🎤 Voice Settings</h3>
-        {currentVoice && (
-          <div className="current-voice">
-            <span className="label">Current:</span>
-            <span className="value">{currentVoice.description}</span>
-          </div>
-        )}
       </div>
 
       {!callSid && (
@@ -137,13 +106,37 @@ function VoiceSelector({ callSid, onVoiceChange }) {
         </div>
       )}
 
-      <div className="voice-groups">
-        {Object.entries(groupedVoices).map(([groupName, voiceIds]) =>
-          renderVoiceGroup(groupName, voiceIds)
+      <div className="voice-selector-content">
+        {currentVoice && (
+          <div className="current-voice-display">
+            <span className="label">Current Voice:</span>
+            <span className="value">{currentVoice.description}</span>
+          </div>
         )}
-      </div>
 
-      <div className="voice-selector-footer">
+        <div className="voice-dropdown-container">
+          <label htmlFor="voice-select" className="dropdown-label">
+            Select Voice:
+          </label>
+          <select
+            id="voice-select"
+            value={selectedVoiceId}
+            onChange={(e) => setSelectedVoiceId(parseInt(e.target.value))}
+            disabled={isChanging}
+            className="voice-dropdown"
+          >
+            {Object.entries(groupedVoices).map(([groupName, voiceIds]) => (
+              <optgroup key={groupName} label={groupName}>
+                {voiceIds.map(id => (
+                  <option key={id} value={id}>
+                    {id}. {voices[id]?.description || 'Unknown'}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </div>
+
         <button
           className="apply-btn"
           onClick={handleVoiceChange}
@@ -151,6 +144,7 @@ function VoiceSelector({ callSid, onVoiceChange }) {
         >
           {isChanging ? '⏳ Changing...' : callSid ? '✅ Apply Voice' : '✅ Set Default Voice'}
         </button>
+
         <p className="hint">
           💡 {callSid ? 'Voice will be applied to the next AI response' : 'This voice will be used for all future calls'}
         </p>

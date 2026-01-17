@@ -26,7 +26,7 @@ class CallHandler {
 
     // AI Configuration
     this.personality = process.env.AI_PERSONALITY || 'confused_grandparent';
-    this.model = process.env.OPENAI_MODEL || 'gpt-4-turbo-preview';
+    this.model = process.env.OPENAI_MODEL || 'gpt-4o-mini'; // Fast and cheap, perfect for real-time calls
 
     // Set voice for this call to the current default
     setVoiceForCall(this.callSid, getDefaultVoice());
@@ -123,10 +123,12 @@ class CallHandler {
     // Add AI response to history
     this.addMessage('assistant', aiResponse);
 
-    // Save to database
-    await db.updateTranscript(this.callSid, this.conversationHistory);
+    // Save to database and emit to dashboard in background (non-blocking)
+    // Don't await these - they can happen async while we generate TTS
+    db.updateTranscript(this.callSid, this.conversationHistory).catch(err => {
+      console.error('Error updating transcript:', err);
+    });
 
-    // Emit to dashboard
     this.io.emit('call:transcript', {
       callSid: this.callSid,
       messages: this.conversationHistory
