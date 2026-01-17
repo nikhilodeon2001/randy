@@ -1,0 +1,144 @@
+const express = require('express');
+const router = express.Router();
+const twilio = require('twilio');
+const VoiceResponse = twilio.twiml.VoiceResponse;
+const CallHandler = require('../services/callHandler');
+
+// Store active call handlers
+const activeCallHandlers = new Map();
+
+/**
+ * Incoming call webhook - Twilio calls this when someone calls your number
+ */
+router.post('/voice', async (req, res) => {
+  const { CallSid, From, To } = req.body;
+
+  console.log(`📞 Incoming call from ${From} to ${To}, CallSid: ${CallSid}`);
+
+  const twiml = new VoiceResponse();
+
+  try {
+    // Create a new call handler for this call
+    const callHandler = new CallHandler(CallSid, From, To, req.app.get('io'));
+    activeCallHandlers.set(CallSid, callHandler);
+
+    // Start the AI conversation
+    await callHandler.start();
+
+    // Initial greeting - the AI will speak first
+    const greeting = await callHandler.getGreeting();
+
+    twiml.say({
+      voice: 'Polly.Joanna'
+    }, greeting);
+
+    // Use <Gather> to collect caller's speech
+    const gather = twiml.gather({
+      input: 'speech',
+      action: '/twilio/gather',
+      method: 'POST',
+      speechTimeout: '2',
+      speechModel: 'phone_call',
+      enhanced: true
+    });
+
+    // If caller doesn't speak, prompt them
+    twiml.say({ voice: 'Polly.Joanna' }, 'Hello? Are you there?');
+
+    // Redirect back to gather more input
+    twiml.redirect('/twilio/gather');
+
+  } catch (error) {
+    console.error('Error handling incoming call:', error);
+    twiml.say('Sorry, there was an error. Please try again later.');
+    twiml.hangup();
+  }
+
+  res.type('text/xml');
+  res.send(twiml.toString());
+});
+
+/**
+ * Gather webhook - Called when Twilio detects speech
+ */
+router.post('/gather', async (req, res) => {
+  const { CallSid, SpeechResult } = req.body;
+
+  console.log(`🎤 Speech detected from ${CallSid}: "${SpeechResult}"`);
+
+  const twiml = new VoiceResponse();
+
+  try {
+    const callHandler = activeCallHandlers.get(CallSid);
+
+    if (!callHandler) {
+      throw new Error('No call handler found for this call');
+    }
+
+    // Process the caller's speech and get AI response
+    const aiResponse = await callHandler.processUserSpeech(SpeechResult);
+
+    // Speak the AI's response
+    twiml.say({
+      voice: 'Polly.Joanna'
+    }, aiResponse);
+
+    // Continue gathering input
+    const gather = twiml.gather({
+      input: 'speech',
+      action: '/twilio/gather',
+      method: 'POST',
+      speechTimeout: '2',
+      speechModel: 'phone_call',
+      enhanced: true
+    });
+
+    // If no response, ask again
+    twiml.say({ voice: 'Polly.Joanna' }, 'Are you still there?');
+    twiml.redirect('/twilio/gather');
+
+  } catch (error) {
+    console.error('Error processing speech:', error);
+    twiml.say('Sorry, I didn\'t catch that. Could you repeat?');
+    twiml.redirect('/twilio/gather');
+  }
+
+  res.type('text/xml');
+  res.send(twiml.toString());
+});
+
+/**
+ * Call status callback - Twilio calls this on call status changes
+ */
+router.post('/status', async (req, res) => {
+  const { CallSid, CallStatus } = req.body;
+
+  console.log(`📊 Call ${CallSid} status: ${CallStatus}`);
+
+  if (CallStatus === 'completed' || CallStatus === 'failed' || CallStatus === 'no-answer') {
+    // Clean up call handler
+    const callHandler = activeCallHandlers.get(CallSid);
+    if (callHandler) {
+      await callHandler.end();
+      activeCallHandlers.delete(CallSid);
+    }
+  }
+
+  res.sendStatus(200);
+});
+
+/**
+ * Fallback webhook - Called if there's an error
+ */
+router.post('/fallback', (req, res) => {
+  console.error('Fallback webhook called:', req.body);
+
+  const twiml = new VoiceResponse();
+  twiml.say('Sorry, something went wrong. Goodbye.');
+  twiml.hangup();
+
+  res.type('text/xml');
+  res.send(twiml.toString());
+});
+
+module.exports = router;
