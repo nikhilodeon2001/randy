@@ -67,6 +67,7 @@ router.post('/change', async (req, res) => {
 
   // Update active call voice
   activeCallVoices.set(callSid, voiceInfo.model);
+  console.log(`🔄 Voice changed for call ${callSid} to: ${voiceInfo.model} (${voiceInfo.description})`);
 
   // Emit voice change event via WebSocket
   const io = req.app.get('io');

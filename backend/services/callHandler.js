@@ -95,9 +95,11 @@ class CallHandler {
   async generateAudio(text) {
     try {
       const voiceModel = getVoiceForCall(this.callSid);
+      console.log(`🎙️ Using voice model for call ${this.callSid}: ${voiceModel}`);
+
       const result = await ttsService.generateSpeech(text, voiceModel, this.callSid);
 
-      console.log(`Generated audio: ${result.filename} with voice: ${voiceModel}`);
+      console.log(`✅ Generated audio: ${result.filename} with voice: ${voiceModel}`);
 
       return result;
     } catch (error) {
