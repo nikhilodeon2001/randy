@@ -40,7 +40,7 @@ router.post('/voice', async (req, res) => {
       input: 'speech',
       action: '/twilio/gather',
       method: 'POST',
-      speechTimeout: '2',
+      speechTimeout: 'auto',  // Let Twilio auto-detect end of speech (faster)
       speechModel: 'phone_call',
       enhanced: true
     });
@@ -85,7 +85,7 @@ router.post('/gather', async (req, res) => {
         input: 'speech',
         action: '/twilio/gather',
         method: 'POST',
-        speechTimeout: '3',
+        speechTimeout: 'auto',
         speechModel: 'phone_call',
         enhanced: true
       });
@@ -115,7 +115,7 @@ router.post('/gather', async (req, res) => {
       input: 'speech',
       action: '/twilio/gather',
       method: 'POST',
-      speechTimeout: '2',
+      speechTimeout: 'auto',
       speechModel: 'phone_call',
       enhanced: true
     });
