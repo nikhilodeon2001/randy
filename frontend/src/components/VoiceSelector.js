@@ -50,11 +50,10 @@ function VoiceSelector({ callSid, onVoiceChange }) {
   };
 
   const handleVoiceChange = async () => {
-    if (!callSid) return;
-
     setIsChanging(true);
     try {
-      const response = await fetch('/api/voice/change', {
+      const endpoint = callSid ? '/api/voice/change' : '/api/voice/default';
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -78,7 +77,10 @@ function VoiceSelector({ callSid, onVoiceChange }) {
         }
 
         // Show success feedback
-        alert(`✅ Voice changed to: ${data.description}`);
+        const message = callSid
+          ? `✅ Voice changed to: ${data.description}`
+          : `✅ Default voice set to: ${data.description}`;
+        alert(message);
       }
     } catch (error) {
       console.error('Error changing voice:', error);
@@ -101,7 +103,7 @@ function VoiceSelector({ callSid, onVoiceChange }) {
                 value={id}
                 checked={selectedVoiceId === id}
                 onChange={() => setSelectedVoiceId(id)}
-                disabled={!callSid || isChanging}
+                disabled={isChanging}
               />
               <span className="voice-label">
                 <strong>{id}.</strong> {voices[id]?.description || 'Unknown'}
@@ -131,7 +133,7 @@ function VoiceSelector({ callSid, onVoiceChange }) {
 
       {!callSid && (
         <div className="no-call-warning">
-          ⚠️ No active call. Voice can only be changed during a call.
+          ℹ️ No active call. Select a voice to set the default for future calls.
         </div>
       )}
 
@@ -145,12 +147,12 @@ function VoiceSelector({ callSid, onVoiceChange }) {
         <button
           className="apply-btn"
           onClick={handleVoiceChange}
-          disabled={!callSid || isChanging}
+          disabled={isChanging}
         >
-          {isChanging ? '⏳ Changing...' : '✅ Apply Voice'}
+          {isChanging ? '⏳ Changing...' : callSid ? '✅ Apply Voice' : '✅ Set Default Voice'}
         </button>
         <p className="hint">
-          💡 Voice will be applied to the next AI response
+          💡 {callSid ? 'Voice will be applied to the next AI response' : 'This voice will be used for all future calls'}
         </p>
       </div>
     </div>

@@ -1,9 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import './LiveCall.css';
-import VoiceSelector from './VoiceSelector';
 
 function LiveCall({ call, transcript }) {
-  const [currentVoice, setCurrentVoice] = useState(null);
   const transcriptEndRef = useRef(null);
 
   useEffect(() => {
@@ -64,14 +62,6 @@ function LiveCall({ call, transcript }) {
           <div ref={transcriptEndRef} />
         </div>
       </div>
-
-      <VoiceSelector
-        callSid={call.callSid}
-        onVoiceChange={(voiceData) => {
-          console.log('Voice changed:', voiceData);
-          setCurrentVoice(voiceData.description);
-        }}
-      />
     </div>
   );
 }

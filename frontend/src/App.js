@@ -3,6 +3,7 @@ import { io } from 'socket.io-client';
 import './App.css';
 import LiveCall from './components/LiveCall';
 import CallHistory from './components/CallHistory';
+import VoiceSelector from './components/VoiceSelector';
 
 const socket = io(process.env.REACT_APP_BACKEND_URL || 'http://localhost:3000');
 
@@ -71,12 +72,21 @@ function App() {
       </header>
 
       <main>
-        {activeCall ? (
+        {activeCall && (
           <LiveCall
             call={activeCall}
             transcript={transcript}
           />
-        ) : (
+        )}
+
+        <VoiceSelector
+          callSid={activeCall?.callSid || null}
+          onVoiceChange={(voiceData) => {
+            console.log('Voice changed:', voiceData);
+          }}
+        />
+
+        {!activeCall && (
           <div className="waiting">
             <h2>Waiting for incoming calls...</h2>
             <p>Calls to your Twilio number will appear here</p>

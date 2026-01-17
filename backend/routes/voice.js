@@ -6,6 +6,9 @@ const ttsService = require('../services/ttsService');
 // Map<CallSid, voiceModel>
 const activeCallVoices = new Map();
 
+// Store default voice for future calls
+let defaultVoiceModel = 'aura-2-thalia-en';
+
 /**
  * GET /api/voice/models
  * Get all available voice models
@@ -117,6 +120,52 @@ router.get('/active', (req, res) => {
 });
 
 /**
+ * POST /api/voice/default
+ * Set default voice for all future calls
+ */
+router.post('/default', (req, res) => {
+  const { voiceId } = req.body;
+
+  if (!voiceId) {
+    return res.status(400).json({
+      error: 'Missing required field: voiceId'
+    });
+  }
+
+  // Get voice model by ID
+  const voiceInfo = ttsService.getVoiceById(parseInt(voiceId));
+
+  if (!voiceInfo) {
+    return res.status(400).json({
+      error: 'Invalid voice ID'
+    });
+  }
+
+  // Update default voice
+  defaultVoiceModel = voiceInfo.model;
+
+  res.json({
+    success: true,
+    voiceModel: voiceInfo.model,
+    description: voiceInfo.description
+  });
+});
+
+/**
+ * GET /api/voice/default
+ * Get current default voice
+ */
+router.get('/default', (req, res) => {
+  const models = ttsService.getVoiceModels();
+  const voiceInfo = Object.values(models).find(v => v.model === defaultVoiceModel);
+
+  res.json({
+    voiceModel: defaultVoiceModel,
+    description: voiceInfo?.description || 'Default voice'
+  });
+});
+
+/**
  * DELETE /api/voice/:callSid
  * Remove voice settings for ended call
  */
@@ -134,19 +183,27 @@ router.delete('/:callSid', (req, res) => {
  * Helper function to get voice for a call (used by CallHandler)
  */
 function getVoiceForCall(callSid) {
-  return activeCallVoices.get(callSid) || 'aura-2-thalia-en'; // Default to Thalia
+  return activeCallVoices.get(callSid) || defaultVoiceModel; // Use default voice if not set
 }
 
 /**
  * Helper function to set voice for a call
  */
 function setVoiceForCall(callSid, voiceModel) {
-  activeCallVoices.set(callSid, voiceModel);
+  activeCallVoices.set(callSid, voiceModel || defaultVoiceModel);
+}
+
+/**
+ * Helper function to get default voice
+ */
+function getDefaultVoice() {
+  return defaultVoiceModel;
 }
 
 module.exports = {
   router,
   getVoiceForCall,
   setVoiceForCall,
+  getDefaultVoice,
   activeCallVoices
 };
