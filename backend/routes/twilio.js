@@ -56,6 +56,15 @@ router.post('/voice', async (req, res) => {
 
   res.type('text/xml');
   res.send(twiml.toString());
+
+  // Start recording after a brief delay to ensure call is answered
+  // Don't await - let it happen async
+  setTimeout(async () => {
+    const callHandler = activeCallHandlers.get(CallSid);
+    if (callHandler) {
+      await callHandler.startRecording();
+    }
+  }, 500); // 500ms delay to ensure call leg is established
 });
 
 /**
@@ -74,9 +83,6 @@ router.post('/gather', async (req, res) => {
     if (!callHandler) {
       throw new Error('No call handler found for this call');
     }
-
-    // Start recording on first gather (call is now answered)
-    await callHandler.startRecording();
 
     // Check if we actually got speech
     if (!SpeechResult || SpeechResult === 'undefined' || SpeechResult.trim() === '') {
