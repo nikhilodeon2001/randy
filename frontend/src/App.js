@@ -5,7 +5,9 @@ import LiveCall from './components/LiveCall';
 import CallHistory from './components/CallHistory';
 import VoiceSelector from './components/VoiceSelector';
 
-const socket = io(process.env.REACT_APP_BACKEND_URL || 'http://localhost:3000');
+// In production, connect to same origin (Heroku serves both frontend and backend)
+// In development, connect to localhost:3000
+const socket = io(process.env.REACT_APP_BACKEND_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000'));
 
 function App() {
   const [activeCall, setActiveCall] = useState(null);
