@@ -33,26 +33,18 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Health check endpoint
-app.get('/', (req, res) => {
-  res.json({
-    name: 'Randy AI Call Handler',
-    version: '1.0.0',
-    status: 'running'
-  });
-});
-
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy' });
 });
 
-// Routes
+// API Routes
 app.use('/twilio', twilioRoutes);
 app.use('/api/calls', callsRoutes);
 
 // Serve static files from React build
 app.use(express.static(path.join(__dirname, '../frontend/build')));
 
-// All other routes serve React app
+// All other routes serve React app (must be last)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
 });
