@@ -36,7 +36,7 @@ router.post('/voice', async (req, res) => {
     twiml.play(audioUrl);
 
     // Use <Gather> to collect caller's speech
-    const gather = twiml.gather({
+    twiml.gather({
       input: 'speech',
       action: '/twilio/gather',
       method: 'POST',
@@ -44,11 +44,6 @@ router.post('/voice', async (req, res) => {
       speechModel: 'phone_call',
       enhanced: true
     });
-
-    // If caller doesn't speak, prompt them with another Deepgram audio
-    const promptResult = await callHandler.generateAudio('Hello? Are you there?');
-    const promptUrl = `${req.protocol}://${req.get('host')}/audio/${promptResult.filename}`;
-    twiml.play(promptUrl);
 
     // Redirect back to gather more input
     twiml.redirect('/twilio/gather');
@@ -100,6 +95,8 @@ router.post('/gather', async (req, res) => {
       return;
     }
 
+    const overallStart = Date.now();
+
     // Process the caller's speech and get AI response
     const aiResponse = await callHandler.processUserSpeech(SpeechResult);
 
@@ -107,11 +104,14 @@ router.post('/gather', async (req, res) => {
     const responseResult = await callHandler.generateAudio(aiResponse);
     const responseUrl = `${req.protocol}://${req.get('host')}/audio/${responseResult.filename}`;
 
+    const totalDuration = Date.now() - overallStart;
+    console.log(`🎯 TOTAL response time: ${totalDuration}ms (speech → audio ready)`);
+
     // Play the AI's response
     twiml.play(responseUrl);
 
     // Continue gathering input
-    const gather = twiml.gather({
+    twiml.gather({
       input: 'speech',
       action: '/twilio/gather',
       method: 'POST',
@@ -120,10 +120,7 @@ router.post('/gather', async (req, res) => {
       enhanced: true
     });
 
-    // If no response, ask again with Deepgram audio
-    const stillThereResult = await callHandler.generateAudio('Are you still there?');
-    const stillThereUrl = `${req.protocol}://${req.get('host')}/audio/${stillThereResult.filename}`;
-    twiml.play(stillThereUrl);
+    // Just redirect back - no need to generate "still there" audio every time
     twiml.redirect('/twilio/gather');
 
   } catch (error) {
