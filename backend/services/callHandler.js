@@ -12,6 +12,7 @@ class CallHandler {
     this.io = io;
     this.conversationHistory = [];
     this.startTime = new Date();
+    this.recordingStarted = false; // Track if recording has been started
 
     // Initialize OpenAI client
     this.openai = new OpenAI({
@@ -47,7 +48,23 @@ class CallHandler {
       status: 'in-progress'
     });
 
-    // Start recording the call
+    // Emit to dashboard
+    this.io.emit('call:started', {
+      callSid: this.callSid,
+      from: this.fromNumber,
+      startTime: this.startTime
+    });
+  }
+
+  /**
+   * Start recording - called after call is answered
+   */
+  async startRecording() {
+    // Only start recording once
+    if (this.recordingStarted) {
+      return;
+    }
+
     try {
       const appUrl = process.env.APP_URL || 'https://randy-scam-bait-927182c285b5.herokuapp.com';
       await this.twilioClient.calls(this.callSid)
@@ -56,17 +73,11 @@ class CallHandler {
           recordingStatusCallback: `${appUrl}/twilio/recording`,
           recordingStatusCallbackMethod: 'POST'
         });
+      this.recordingStarted = true;
       console.log(`✅ Recording started for call ${this.callSid}`);
     } catch (error) {
       console.error(`Error starting recording for call ${this.callSid}:`, error);
     }
-
-    // Emit to dashboard
-    this.io.emit('call:started', {
-      callSid: this.callSid,
-      from: this.fromNumber,
-      startTime: this.startTime
-    });
   }
 
   /**

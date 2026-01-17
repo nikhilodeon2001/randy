@@ -75,6 +75,9 @@ router.post('/gather', async (req, res) => {
       throw new Error('No call handler found for this call');
     }
 
+    // Start recording on first gather (call is now answered)
+    await callHandler.startRecording();
+
     // Check if we actually got speech
     if (!SpeechResult || SpeechResult === 'undefined' || SpeechResult.trim() === '') {
       console.log('No speech detected, prompting again');
