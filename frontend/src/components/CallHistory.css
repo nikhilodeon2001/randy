@@ -100,3 +100,33 @@
   padding: 2rem;
   font-style: italic;
 }
+
+.recording-player {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #333;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.recording-player audio {
+  flex: 1;
+  max-width: 400px;
+  height: 32px;
+}
+
+.download-btn {
+  background: #667eea;
+  color: white;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.download-btn:hover {
+  background: #5568d3;
+}

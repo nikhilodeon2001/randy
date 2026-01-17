@@ -159,4 +159,31 @@ router.post('/fallback', (req, res) => {
   res.send(twiml.toString());
 });
 
+/**
+ * Recording callback - Called when recording is available
+ */
+router.post('/recording', async (req, res) => {
+  const { CallSid, RecordingUrl, RecordingSid, RecordingDuration } = req.body;
+
+  console.log(`🎙️ Recording available for ${CallSid}: ${RecordingUrl}`);
+
+  try {
+    const db = require('../db');
+
+    // Update call with recording information
+    await db.pool.query(
+      `UPDATE calls
+       SET recording_url = $1, recording_sid = $2, recording_duration = $3
+       WHERE call_sid = $4`,
+      [RecordingUrl, RecordingSid, RecordingDuration, CallSid]
+    );
+
+    console.log(`✅ Recording saved for call ${CallSid}`);
+  } catch (error) {
+    console.error('Error saving recording:', error);
+  }
+
+  res.sendStatus(200);
+});
+
 module.exports = router;

@@ -34,6 +34,16 @@ function CallHistory({ calls, onRefresh }) {
                 {call.duration && <span>⏱️ {formatDuration(call.duration)}</span>}
                 <span>💬 {call.message_count} messages</span>
               </div>
+              {call.recording_url && (
+                <div className="recording-player">
+                  <audio controls src={call.recording_url}>
+                    Your browser does not support the audio element.
+                  </audio>
+                  <a href={call.recording_url} download className="download-btn">
+                    ⬇️ Download
+                  </a>
+                </div>
+              )}
             </div>
           ))}
         </div>

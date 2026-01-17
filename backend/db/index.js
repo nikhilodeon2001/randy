@@ -22,6 +22,9 @@ async function initDb() {
         duration INTEGER,
         status VARCHAR(50) NOT NULL,
         message_count INTEGER DEFAULT 0,
+        recording_url TEXT,
+        recording_sid VARCHAR(255),
+        recording_duration INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
