@@ -93,17 +93,20 @@ class CallHandler {
    * Generate audio file for text using Deepgram TTS
    */
   async generateAudio(text) {
+    const startTime = Date.now();
     try {
       const voiceModel = getVoiceForCall(this.callSid);
-      console.log(`🎙️ Using voice model for call ${this.callSid}: ${voiceModel}`);
+      console.log(`⏱️ Starting Deepgram TTS for ${this.callSid} with voice: ${voiceModel}`);
 
       const result = await ttsService.generateSpeech(text, voiceModel, this.callSid);
 
-      console.log(`✅ Generated audio: ${result.filename} with voice: ${voiceModel}`);
+      const duration = Date.now() - startTime;
+      console.log(`✅ Deepgram TTS completed in ${duration}ms: ${result.filename}`);
 
       return result;
     } catch (error) {
-      console.error('Error generating audio:', error);
+      const duration = Date.now() - startTime;
+      console.error(`❌ TTS error after ${duration}ms:`, error);
       throw error;
     }
   }
@@ -141,6 +144,7 @@ class CallHandler {
    * Generate AI response using GPT-4
    */
   async generateResponse() {
+    const startTime = Date.now();
     try {
       const systemPrompt = this.getSystemPrompt();
 
@@ -152,16 +156,22 @@ class CallHandler {
         }))
       ];
 
+      console.log(`⏱️ Starting GPT-4o-mini request for ${this.callSid}...`);
       const completion = await this.openai.chat.completions.create({
         model: this.model,
         messages: messages,
         temperature: 0.8,
-        max_tokens: 100, // Keep responses brief for phone conversation
+        max_tokens: 40, // Shorter = faster generation and faster TTS
       });
 
-      return completion.choices[0]?.message?.content || "I didn't catch that. Could you repeat?";
+      const duration = Date.now() - startTime;
+      const response = completion.choices[0]?.message?.content || "I didn't catch that. Could you repeat?";
+      console.log(`✅ GPT-4o-mini completed in ${duration}ms: "${response}"`);
+
+      return response;
     } catch (error) {
-      console.error('Error generating AI response:', error);
+      const duration = Date.now() - startTime;
+      console.error(`❌ GPT error after ${duration}ms:`, error);
       return "Sorry, could you say that again?";
     }
   }
