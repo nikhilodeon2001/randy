@@ -178,15 +178,18 @@ router.post('/recording', async (req, res) => {
   try {
     const db = require('../db');
 
+    // Append .mp3 to recording URL for proper playback
+    const recordingUrlWithExtension = `${RecordingUrl}.mp3`;
+
     // Update call with recording information
     await db.pool.query(
       `UPDATE calls
        SET recording_url = $1, recording_sid = $2, recording_duration = $3
        WHERE call_sid = $4`,
-      [RecordingUrl, RecordingSid, RecordingDuration, CallSid]
+      [recordingUrlWithExtension, RecordingSid, RecordingDuration, CallSid]
     );
 
-    console.log(`✅ Recording saved for call ${CallSid}`);
+    console.log(`✅ Recording saved for call ${CallSid}: ${recordingUrlWithExtension}`);
   } catch (error) {
     console.error('Error saving recording:', error);
   }
