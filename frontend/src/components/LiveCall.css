@@ -1,0 +1,133 @@
+.live-call {
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.call-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #333;
+}
+
+.call-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.live {
+  background-color: #2ecc71;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.caller-number {
+  font-family: monospace;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.call-stats {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.9rem;
+  color: #888;
+}
+
+.duration {
+  font-family: monospace;
+  font-weight: bold;
+  color: #2ecc71;
+}
+
+.transcript-container h3 {
+  margin-bottom: 1rem;
+  color: #667eea;
+}
+
+.transcript {
+  max-height: 500px;
+  overflow-y: auto;
+  padding: 1rem;
+  background: #0a0a0a;
+  border-radius: 8px;
+}
+
+.transcript::-webkit-scrollbar {
+  width: 8px;
+}
+
+.transcript::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+.transcript::-webkit-scrollbar-thumb {
+  background: #667eea;
+  border-radius: 4px;
+}
+
+.message {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message.ai {
+  background: #2c3e50;
+  margin-right: 2rem;
+}
+
+.message.user {
+  background: #34495e;
+  margin-left: 2rem;
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.role {
+  font-weight: bold;
+  color: #667eea;
+}
+
+.time {
+  color: #666;
+}
+
+.message-content {
+  line-height: 1.5;
+  color: #ddd;
+}
+
+.empty {
+  text-align: center;
+  color: #666;
+  padding: 2rem;
+  font-style: italic;
+}
