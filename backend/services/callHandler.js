@@ -2,6 +2,7 @@ const OpenAI = require('openai');
 const db = require('../db');
 const ttsService = require('./ttsService');
 const { getVoiceForCall, setVoiceForCall } = require('../routes/voice');
+const twilio = require('twilio');
 
 class CallHandler {
   constructor(callSid, fromNumber, toNumber, io) {
@@ -16,6 +17,12 @@ class CallHandler {
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY
     });
+
+    // Initialize Twilio client
+    this.twilioClient = twilio(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN
+    );
 
     // AI Configuration
     this.personality = process.env.AI_PERSONALITY || 'confused_grandparent';
@@ -39,6 +46,20 @@ class CallHandler {
       startTime: this.startTime,
       status: 'in-progress'
     });
+
+    // Start recording the call
+    try {
+      const appUrl = process.env.APP_URL || 'https://randy-scam-bait-927182c285b5.herokuapp.com';
+      await this.twilioClient.calls(this.callSid)
+        .recordings
+        .create({
+          recordingStatusCallback: `${appUrl}/twilio/recording`,
+          recordingStatusCallbackMethod: 'POST'
+        });
+      console.log(`✅ Recording started for call ${this.callSid}`);
+    } catch (error) {
+      console.error(`Error starting recording for call ${this.callSid}:`, error);
+    }
 
     // Emit to dashboard
     this.io.emit('call:started', {
