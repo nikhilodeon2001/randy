@@ -2,6 +2,7 @@ const OpenAI = require('openai');
 const db = require('../db');
 const ttsService = require('./ttsService');
 const { getVoiceForCall, setVoiceForCall, getDefaultVoice } = require('../routes/voice');
+const { loadCallerProfile } = require('./callerProfiles');
 const twilio = require('twilio');
 
 class CallHandler {
@@ -13,6 +14,7 @@ class CallHandler {
     this.conversationHistory = [];
     this.startTime = new Date();
     this.recordingStarted = false; // Track if recording has been started
+    this.callerProfile = null; // Will be loaded in start()
 
     // Initialize OpenAI client
     this.openai = new OpenAI({
@@ -38,6 +40,15 @@ class CallHandler {
    */
   async start() {
     console.log(`Starting call handler for ${this.callSid}`);
+
+    // Load caller profile if it exists
+    this.callerProfile = await loadCallerProfile(this.fromNumber);
+
+    if (this.callerProfile) {
+      console.log(`📋 Using personalized profile for ${this.fromNumber}`);
+    } else {
+      console.log(`👤 No profile found for ${this.fromNumber}, using default personality: ${this.personality}`);
+    }
 
     // Save call to database
     await db.createCall({
@@ -84,20 +95,66 @@ class CallHandler {
    * Get initial greeting
    */
   async getGreeting() {
-    const greetings = {
-      confused_grandparent: "Hello? Who is this? Is this my grandson?",
-      tech_support: "Thank you for calling Tech Support. Can I have your case number please?",
-      interested_buyer: "Oh hi! Is this about the product I was looking at?",
-      conspiracy_theorist: "Hello... how did you get this number? Who sent you?",
-      busy_professional: "Yes? Make it quick, I'm in a meeting."
-    };
+    let greeting;
 
-    const greeting = greetings[this.personality] || greetings.confused_grandparent;
+    // If caller has a profile, generate personalized LLM greeting
+    if (this.callerProfile) {
+      greeting = await this.generatePersonalizedGreeting();
+    } else {
+      // Use default personality-based greeting
+      const greetings = {
+        confused_grandparent: "Hello? Who is this? Is this my grandson?",
+        tech_support: "Thank you for calling Tech Support. Can I have your case number please?",
+        interested_buyer: "Oh hi! Is this about the product I was looking at?",
+        conspiracy_theorist: "Hello... how did you get this number? Who sent you?",
+        busy_professional: "Yes? Make it quick, I'm in a meeting."
+      };
+
+      greeting = greetings[this.personality] || greetings.confused_grandparent;
+    }
 
     // Add to conversation history
     this.addMessage('assistant', greeting);
 
     return greeting;
+  }
+
+  /**
+   * Generate personalized greeting using LLM and caller profile
+   */
+  async generatePersonalizedGreeting() {
+    const startTime = Date.now();
+    try {
+      console.log(`🎨 Generating personalized greeting for ${this.fromNumber}...`);
+
+      const prompt = `You are answering a phone call. Based on the caller profile below, generate a natural, conversational greeting (1-2 sentences max) that fits the suggested strategy.
+
+CALLER PROFILE:
+${this.callerProfile}
+
+Generate ONLY the greeting text you would speak when answering the phone. Be natural and in-character. Do not include any explanations or meta-commentary.`;
+
+      const completion = await this.openai.chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: 'system', content: 'You are a helpful assistant that generates realistic phone conversation greetings based on caller context.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.9,
+        max_tokens: 50
+      });
+
+      const duration = Date.now() - startTime;
+      const greeting = completion.choices[0]?.message?.content?.trim() || "Hello?";
+      console.log(`✅ Personalized greeting generated in ${duration}ms: "${greeting}"`);
+
+      return greeting;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`❌ Error generating personalized greeting after ${duration}ms:`, error);
+      // Fallback to generic greeting
+      return "Hello? Who's calling?";
+    }
   }
 
   /**
@@ -191,9 +248,25 @@ class CallHandler {
   }
 
   /**
-   * Get system prompt based on personality
+   * Get system prompt based on personality or caller profile
    */
   getSystemPrompt() {
+    // If caller has a profile, use personalized system prompt
+    if (this.callerProfile) {
+      return `You are handling a phone call from a known caller. Use the profile information below to guide your responses and maintain the suggested strategy throughout the conversation.
+
+CALLER PROFILE:
+${this.callerProfile}
+
+INSTRUCTIONS:
+- Stay in character based on the suggested strategy
+- Reference specific details from the profile naturally when appropriate
+- Keep responses very brief (1-2 sentences max) for phone conversation
+- Your goal is to engage the caller according to the strategy described
+- Be natural and conversational - don't sound robotic or scripted`;
+    }
+
+    // Otherwise use default personality-based prompts
     const prompts = {
       confused_grandparent: `You are an elderly grandparent who is confused by technology and modern scams.
 You mishear things frequently, go off on tangents about your grandchildren, and need everything explained slowly.
