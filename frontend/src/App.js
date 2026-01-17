@@ -36,6 +36,12 @@ function App() {
       }
     });
 
+    // Listen for voice changes
+    socket.on('voice:changed', (data) => {
+      console.log('Voice changed:', data);
+      // You can show a notification or update UI here if needed
+    });
+
     // Load call history on mount
     loadCallHistory();
 
@@ -43,6 +49,7 @@ function App() {
       socket.off('call:started');
       socket.off('call:transcript');
       socket.off('call:ended');
+      socket.off('voice:changed');
     };
   }, [activeCall]);
 
