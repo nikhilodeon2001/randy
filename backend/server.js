@@ -5,11 +5,13 @@ const socketIO = require('socket.io');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const twilio = require('twilio');
+const path = require('path');
 
 // Import routes
 const twilioRoutes = require('./routes/twilio');
 const callsRoutes = require('./routes/calls');
 const { setupWebSocket } = require('./services/websocket');
+const db = require('./db');
 
 // Initialize Express app
 const app = express();
@@ -47,6 +49,14 @@ app.get('/health', (req, res) => {
 app.use('/twilio', twilioRoutes);
 app.use('/api/calls', callsRoutes);
 
+// Serve static files from React build
+app.use(express.static(path.join(__dirname, '../frontend/build')));
+
+// All other routes serve React app
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
+});
+
 // Setup WebSocket handlers
 setupWebSocket(io);
 
@@ -62,13 +72,28 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
+// Initialize database and start server
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`🚀 Randy server running on port ${PORT}`);
-  console.log(`📱 Twilio webhook endpoint: http://localhost:${PORT}/twilio/voice`);
-  console.log(`🌐 Frontend should connect to: http://localhost:${PORT}`);
-});
+
+async function startServer() {
+  try {
+    // Initialize database tables
+    await db.initDb();
+    console.log('✅ Database initialized');
+
+    // Start server
+    server.listen(PORT, () => {
+      console.log(`🚀 Randy server running on port ${PORT}`);
+      console.log(`📱 Twilio webhook endpoint: /twilio/voice`);
+      console.log(`🌐 Dashboard available at root URL`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
