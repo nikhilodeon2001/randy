@@ -95,9 +95,7 @@ class TTSService {
       const response = await this.deepgram.speak.request(
         { text },
         {
-          model: model,
-          encoding: 'mp3',
-          container: 'mp3'
+          model: model
         }
       );
 
