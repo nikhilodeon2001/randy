@@ -10,6 +10,7 @@ const path = require('path');
 // Import routes
 const twilioRoutes = require('./routes/twilio');
 const callsRoutes = require('./routes/calls');
+const { router: voiceRoutes } = require('./routes/voice');
 const { setupWebSocket } = require('./services/websocket');
 const db = require('./db');
 
@@ -40,6 +41,10 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/twilio', twilioRoutes);
 app.use('/api/calls', callsRoutes);
+app.use('/api/voice', voiceRoutes);
+
+// Serve audio files (Deepgram-generated TTS)
+app.use('/audio', express.static(path.join(__dirname, 'audio')));
 
 // Serve static files from React build
 app.use(express.static(path.join(__dirname, '../frontend/build')));

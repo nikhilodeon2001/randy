@@ -28,9 +28,12 @@ router.post('/voice', async (req, res) => {
     // Initial greeting - the AI will speak first
     const greeting = await callHandler.getGreeting();
 
-    twiml.say({
-      voice: 'Polly.Joanna'
-    }, greeting);
+    // Generate Deepgram audio for greeting
+    const audioResult = await callHandler.generateAudio(greeting);
+    const audioUrl = `${req.protocol}://${req.get('host')}/audio/${audioResult.filename}`;
+
+    // Play Deepgram-generated audio
+    twiml.play(audioUrl);
 
     // Use <Gather> to collect caller's speech
     const gather = twiml.gather({
@@ -42,8 +45,10 @@ router.post('/voice', async (req, res) => {
       enhanced: true
     });
 
-    // If caller doesn't speak, prompt them
-    twiml.say({ voice: 'Polly.Joanna' }, 'Hello? Are you there?');
+    // If caller doesn't speak, prompt them with another Deepgram audio
+    const promptResult = await callHandler.generateAudio('Hello? Are you there?');
+    const promptUrl = `${req.protocol}://${req.get('host')}/audio/${promptResult.filename}`;
+    twiml.play(promptUrl);
 
     // Redirect back to gather more input
     twiml.redirect('/twilio/gather');
@@ -78,7 +83,9 @@ router.post('/gather', async (req, res) => {
     // Check if we actually got speech
     if (!SpeechResult || SpeechResult === 'undefined' || SpeechResult.trim() === '') {
       console.log('No speech detected, prompting again');
-      twiml.say({ voice: 'Polly.Joanna' }, 'Hello? I didn\'t hear you. Are you there?');
+      const noSpeechResult = await callHandler.generateAudio('Hello? I didn\'t hear you. Are you there?');
+      const noSpeechUrl = `${req.protocol}://${req.get('host')}/audio/${noSpeechResult.filename}`;
+      twiml.play(noSpeechUrl);
       twiml.gather({
         input: 'speech',
         action: '/twilio/gather',
@@ -96,10 +103,12 @@ router.post('/gather', async (req, res) => {
     // Process the caller's speech and get AI response
     const aiResponse = await callHandler.processUserSpeech(SpeechResult);
 
-    // Speak the AI's response
-    twiml.say({
-      voice: 'Polly.Joanna'
-    }, aiResponse);
+    // Generate Deepgram audio for AI response
+    const responseResult = await callHandler.generateAudio(aiResponse);
+    const responseUrl = `${req.protocol}://${req.get('host')}/audio/${responseResult.filename}`;
+
+    // Play the AI's response
+    twiml.play(responseUrl);
 
     // Continue gathering input
     const gather = twiml.gather({
@@ -111,8 +120,10 @@ router.post('/gather', async (req, res) => {
       enhanced: true
     });
 
-    // If no response, ask again
-    twiml.say({ voice: 'Polly.Joanna' }, 'Are you still there?');
+    // If no response, ask again with Deepgram audio
+    const stillThereResult = await callHandler.generateAudio('Are you still there?');
+    const stillThereUrl = `${req.protocol}://${req.get('host')}/audio/${stillThereResult.filename}`;
+    twiml.play(stillThereUrl);
     twiml.redirect('/twilio/gather');
 
   } catch (error) {

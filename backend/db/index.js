@@ -25,6 +25,7 @@ async function initDb() {
         recording_url TEXT,
         recording_sid VARCHAR(255),
         recording_duration INTEGER,
+        current_voice_model VARCHAR(50) DEFAULT 'aura-2-thalia-en',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);

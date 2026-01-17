@@ -1,5 +1,7 @@
 const OpenAI = require('openai');
 const db = require('../db');
+const ttsService = require('./ttsService');
+const { getVoiceForCall, setVoiceForCall } = require('../routes/voice');
 
 class CallHandler {
   constructor(callSid, fromNumber, toNumber, io) {
@@ -18,6 +20,9 @@ class CallHandler {
     // AI Configuration
     this.personality = process.env.AI_PERSONALITY || 'confused_grandparent';
     this.model = process.env.OPENAI_MODEL || 'gpt-4-turbo-preview';
+
+    // Set default voice (Thalia - confused grandparent matches personality)
+    setVoiceForCall(this.callSid, 'aura-2-thalia-en');
   }
 
   /**
@@ -61,6 +66,23 @@ class CallHandler {
     this.addMessage('assistant', greeting);
 
     return greeting;
+  }
+
+  /**
+   * Generate audio file for text using Deepgram TTS
+   */
+  async generateAudio(text) {
+    try {
+      const voiceModel = getVoiceForCall(this.callSid);
+      const result = await ttsService.generateSpeech(text, voiceModel, this.callSid);
+
+      console.log(`Generated audio: ${result.filename} with voice: ${voiceModel}`);
+
+      return result;
+    } catch (error) {
+      console.error('Error generating audio:', error);
+      throw error;
+    }
   }
 
   /**
