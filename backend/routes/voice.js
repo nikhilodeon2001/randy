@@ -7,7 +7,7 @@ const ttsService = require('../services/ttsService');
 const activeCallVoices = new Map();
 
 // Store default voice for future calls
-let defaultVoiceModel = 'aura-asteria-en';
+let defaultVoiceModel = 'aura-orion-en';
 
 /**
  * GET /api/voice/models
