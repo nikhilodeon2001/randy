@@ -19,7 +19,8 @@ function LiveCall({ call, transcript }) {
 
     // Only auto-scroll if user was at the bottom
     if (isAtBottom) {
-      transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      // Scroll the container itself, not the scrollIntoView which affects the whole page
+      container.scrollTop = container.scrollHeight;
     }
   }, [transcript]);
 
