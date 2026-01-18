@@ -3,10 +3,17 @@ import './LiveCall.css';
 
 function LiveCall({ call, transcript }) {
   const transcriptEndRef = useRef(null);
+  const transcriptContainerRef = useRef(null);
 
   useEffect(() => {
-    // Auto-scroll to bottom when transcript updates
-    transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Only auto-scroll if user is already near the bottom (within 100px)
+    const container = transcriptContainerRef.current;
+    if (container) {
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+      if (isNearBottom) {
+        transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
   }, [transcript]);
 
   const formatTime = (timestamp) => {
@@ -40,7 +47,7 @@ function LiveCall({ call, transcript }) {
 
       <div className="transcript-container">
         <h3>Live Transcript</h3>
-        <div className="transcript">
+        <div className="transcript" ref={transcriptContainerRef}>
           {transcript.length === 0 ? (
             <p className="empty">Waiting for conversation to start...</p>
           ) : (
