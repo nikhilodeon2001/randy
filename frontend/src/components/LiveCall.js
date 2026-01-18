@@ -4,17 +4,39 @@ import './LiveCall.css';
 function LiveCall({ call, transcript }) {
   const transcriptEndRef = useRef(null);
   const transcriptContainerRef = useRef(null);
+  const wasAtBottomRef = useRef(true); // Track if user was at bottom
 
   useEffect(() => {
-    // Only auto-scroll if user is already near the bottom (within 100px)
     const container = transcriptContainerRef.current;
-    if (container) {
-      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-      if (isNearBottom) {
-        transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }
+    if (!container) return;
+
+    // Check if user was at bottom BEFORE the update
+    const scrollThreshold = 50; // pixels from bottom
+    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold;
+
+    // Update our tracking ref
+    wasAtBottomRef.current = isAtBottom;
+
+    // Only auto-scroll if user was at the bottom
+    if (isAtBottom) {
+      transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [transcript]);
+
+  // Add scroll event listener to track user scroll behavior
+  useEffect(() => {
+    const container = transcriptContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const scrollThreshold = 50;
+      const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold;
+      wasAtBottomRef.current = isAtBottom;
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const formatTime = (timestamp) => {
     return new Date(timestamp).toLocaleTimeString();
