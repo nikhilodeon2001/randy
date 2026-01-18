@@ -232,7 +232,7 @@ Generate ONLY the greeting text you would speak when answering the phone. Be nat
         model: this.model,
         messages: messages,
         temperature: 0.8,
-        max_tokens: 20, // Ultra-short for minimal latency
+        max_tokens: 60, // Increased for more complete responses (2-3 sentences)
       });
 
       const duration = Date.now() - startTime;
