@@ -95,23 +95,8 @@ class CallHandler {
    * Get initial greeting
    */
   async getGreeting() {
-    let greeting;
-
-    // If caller has a profile, generate personalized LLM greeting
-    if (this.callerProfile) {
-      greeting = await this.generatePersonalizedGreeting();
-    } else {
-      // Use default personality-based greeting
-      const greetings = {
-        confused_grandparent: "Hello? Who is this? Is this my grandson?",
-        tech_support: "Thank you for calling Tech Support. Can I have your case number please?",
-        interested_buyer: "Oh hi! Is this about the product I was looking at?",
-        conspiracy_theorist: "Hello... how did you get this number? Who sent you?",
-        busy_professional: "Yes? Make it quick, I'm in a meeting."
-      };
-
-      greeting = greetings[this.personality] || greetings.confused_grandparent;
-    }
+    // Always generate LLM greeting (personalized for known callers, generic for unknown)
+    const greeting = await this.generateGreeting();
 
     // Add to conversation history
     this.addMessage('assistant', greeting);
@@ -120,40 +105,71 @@ class CallHandler {
   }
 
   /**
-   * Generate personalized greeting using LLM and caller profile
+   * Generate greeting using LLM (personalized for known callers, varied for unknown)
    */
-  async generatePersonalizedGreeting() {
+  async generateGreeting() {
     const startTime = Date.now();
     try {
-      console.log(`🎨 Generating personalized greeting for ${this.fromNumber}...`);
+      console.log(`🎨 Generating greeting for ${this.fromNumber}...`);
 
-      const prompt = `You are answering a phone call. Based on the caller profile below, generate a natural, conversational greeting (1-2 sentences max) that fits the suggested strategy.
+      let prompt;
+
+      if (this.callerProfile) {
+        // Personalized greeting for known callers
+        prompt = `You are Randy, Nikhil's personal AI assistant, answering a phone call. Based on the caller profile below, generate a warm, personalized greeting (2-3 sentences).
 
 CALLER PROFILE:
 ${this.callerProfile}
 
-Generate ONLY the greeting text you would speak when answering the phone. Be natural and in-character. Do not include any explanations or meta-commentary.`;
+INSTRUCTIONS:
+- Start by introducing yourself: "Hi, this is Randy, Nikhil's AI assistant"
+- Acknowledge who they are personally (use their name/relationship)
+- Mention that you can take a message for Nikhil or chat with them
+- Be warm and natural - this is someone Nikhil knows
+- Vary the wording each time - don't use the exact same phrases
+
+Example tone: "Hi, this is Randy, Nikhil's AI assistant. Great to hear from you, [Name]! Feel free to leave a message for Nikhil, or we can just chat if you'd like."
+
+Generate ONLY the greeting text you would speak. Be natural and conversational.`;
+      } else {
+        // Generic greeting for unknown callers (varied each time)
+        prompt = `You are Randy, Nikhil's personal AI assistant, answering a phone call from an unknown number. Generate a friendly, professional greeting (2-3 sentences).
+
+INSTRUCTIONS:
+- Introduce yourself: "Hi, this is Randy, Nikhil's AI assistant"
+- Let them know they can leave a message or chat with you
+- Be friendly but professional
+- IMPORTANT: Vary the wording significantly each time - don't repeat the same phrases
+- Keep it natural and conversational
+
+Example variations:
+- "Hi, this is Randy, Nikhil's personal AI assistant. What can I help you with today? Feel free to leave a message for Nikhil, or just chat with me!"
+- "Hey there! This is Randy, Nikhil's AI. I'm here to help - you can let me know what you need and I'll pass it along to Nikhil, or we can just talk. Your call!"
+- "Hi, Randy here - I'm Nikhil's AI assistant. Happy to take a message for him or just have a conversation. What's on your mind?"
+
+Generate ONLY the greeting text. Be creative with the wording.`;
+      }
 
       const completion = await this.openai.chat.completions.create({
         model: this.model,
         messages: [
-          { role: 'system', content: 'You are a helpful assistant that generates realistic phone conversation greetings based on caller context.' },
+          { role: 'system', content: 'You are Randy, a friendly AI assistant that answers phone calls for Nikhil. Generate varied, natural greetings.' },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.9,
-        max_tokens: 50
+        temperature: 0.9, // High temperature for variety
+        max_tokens: 80
       });
 
       const duration = Date.now() - startTime;
-      const greeting = completion.choices[0]?.message?.content?.trim() || "Hello?";
-      console.log(`✅ Personalized greeting generated in ${duration}ms: "${greeting}"`);
+      const greeting = completion.choices[0]?.message?.content?.trim() || "Hi, this is Randy, Nikhil's AI assistant. How can I help you?";
+      console.log(`✅ Greeting generated in ${duration}ms: "${greeting}"`);
 
       return greeting;
     } catch (error) {
       const duration = Date.now() - startTime;
-      console.error(`❌ Error generating personalized greeting after ${duration}ms:`, error);
+      console.error(`❌ Error generating greeting after ${duration}ms:`, error);
       // Fallback to generic greeting
-      return "Hello? Who's calling?";
+      return "Hi, this is Randy, Nikhil's AI assistant. How can I help you today?";
     }
   }
 
@@ -248,49 +264,39 @@ Generate ONLY the greeting text you would speak when answering the phone. Be nat
   }
 
   /**
-   * Get system prompt based on personality or caller profile
+   * Get system prompt based on caller profile
    */
   getSystemPrompt() {
     // If caller has a profile, use personalized system prompt
     if (this.callerProfile) {
-      return `You are handling a phone call from a known caller. Use the profile information below to guide your responses and maintain the suggested strategy throughout the conversation.
+      return `You are Randy, Nikhil's personal AI assistant, handling a phone call from someone he knows. Use the profile information below to have a natural, personalized conversation.
 
 CALLER PROFILE:
 ${this.callerProfile}
 
-INSTRUCTIONS:
-- Stay in character based on the suggested strategy
-- Reference specific details from the profile naturally when appropriate
-- Keep responses very brief (1-2 sentences max) for phone conversation
-- Your goal is to engage the caller according to the strategy described
-- Be natural and conversational - don't sound robotic or scripted`;
+YOUR ROLE:
+- You are Randy, a friendly AI assistant that answers calls for Nikhil
+- This is someone Nikhil knows personally - be warm and personable
+- You can take messages for Nikhil or have a conversation with the caller
+- Reference details from their profile naturally when relevant
+- Keep responses conversational and brief (2-3 sentences max)
+- Be helpful and engaging
+
+If they want to leave a message for Nikhil, let them know you'll pass it along. If they just want to chat, have a friendly conversation using what you know about them from the profile.`;
     }
 
-    // Otherwise use default personality-based prompts
-    const prompts = {
-      confused_grandparent: `You are an elderly grandparent who is confused by technology and modern scams.
-You mishear things frequently, go off on tangents about your grandchildren, and need everything explained slowly.
-You're friendly but easily distracted. Keep responses very brief (1-2 sentences) for phone conversation.
-Ask follow-up questions to keep them engaged.`,
+    // For unknown callers, use friendly AI assistant prompt
+    return `You are Randy, Nikhil's personal AI assistant, handling a phone call.
 
-      tech_support: `You are a tech support representative who is overly thorough and asks many clarifying questions.
-You follow a strict troubleshooting protocol and need to verify every detail multiple times.
-You're patient but bureaucratic. Keep responses brief (1-2 sentences) but ask many questions.`,
+YOUR ROLE:
+- You are Randy, a friendly AI assistant that answers calls for Nikhil
+- You can take messages for Nikhil or have a conversation with the caller
+- Be helpful, professional, and conversational
+- Keep responses brief (2-3 sentences max) for natural phone conversation
+- Ask clarifying questions if needed
+- Be warm and engaging
 
-      interested_buyer: `You are someone genuinely interested in what the caller is offering, but you have many concerns and questions.
-You're enthusiastic but indecisive, always asking for more details and comparing options.
-You frequently get sidetracked. Keep responses brief (1-2 sentences) and curious.`,
-
-      conspiracy_theorist: `You are someone who believes the caller is part of a larger conspiracy.
-You ask probing questions about who they really work for and what their true motives are.
-You're skeptical but weirdly engaged. Keep responses brief (1-2 sentences) and suspicious.`,
-
-      busy_professional: `You are a busy professional taking a call between meetings.
-You're distracted, frequently mention you have to go soon, but somehow keep staying on the line.
-You ask them to repeat things because you're multitasking. Keep responses very brief (1 sentence).`
-    };
-
-    return prompts[this.personality] || prompts.confused_grandparent;
+If they want to leave a message for Nikhil, get the details and let them know you'll pass it along. If they seem like a sales call or spam, you can politely engage and waste their time while being friendly.`;
   }
 
   /**
