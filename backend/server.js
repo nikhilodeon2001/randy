@@ -82,7 +82,7 @@ async function startServer() {
 
     // Start server
     server.listen(PORT, () => {
-      console.log(`🚀 Randy server running on port ${PORT}`);
+      console.log(`🚀 Doug server running on port ${PORT}`);
       console.log(`📱 Twilio webhook endpoint: /twilio/voice`);
       console.log(`🌐 Dashboard available at root URL`);
     });

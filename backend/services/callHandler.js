@@ -77,7 +77,7 @@ class CallHandler {
     }
 
     try {
-      const appUrl = process.env.APP_URL || 'https://randy-scam-bait-927182c285b5.herokuapp.com';
+      const appUrl = process.env.APP_URL || 'https://randy-ai-assistant.herokuapp.com';
       await this.twilioClient.calls(this.callSid)
         .recordings
         .create({
