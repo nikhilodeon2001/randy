@@ -198,6 +198,41 @@ async function deleteCall(callSid) {
   }
 }
 
+/**
+ * Get a setting value
+ */
+async function getSetting(key, defaultValue = null) {
+  try {
+    const result = await pool.query(
+      'SELECT value FROM settings WHERE key = $1',
+      [key]
+    );
+    return result.rows.length > 0 ? result.rows[0].value : defaultValue;
+  } catch (error) {
+    console.error(`Error getting setting ${key}:`, error);
+    return defaultValue;
+  }
+}
+
+/**
+ * Set a setting value
+ */
+async function setSetting(key, value) {
+  try {
+    await pool.query(
+      `INSERT INTO settings (key, value, updated_at)
+       VALUES ($1, $2, CURRENT_TIMESTAMP)
+       ON CONFLICT (key)
+       DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP`,
+      [key, value]
+    );
+    return true;
+  } catch (error) {
+    console.error(`Error setting ${key}:`, error);
+    return false;
+  }
+}
+
 module.exports = {
   initDb,
   createCall,
@@ -207,5 +242,7 @@ module.exports = {
   updateTranscript,
   getTranscript,
   deleteCall,
+  getSetting,
+  setSetting,
   pool
 };
