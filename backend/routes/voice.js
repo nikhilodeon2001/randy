@@ -1,13 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const ttsService = require('../services/ttsService');
+const db = require('../db');
 
 // Store active call voice settings in memory
 // Map<CallSid, voiceModel>
 const activeCallVoices = new Map();
 
-// Store default voice for future calls
+// Default voice (will be loaded from DB on startup)
 let defaultVoiceModel = 'aura-orion-en';
+
+// Load default voice from database on startup
+(async () => {
+  const savedVoice = await db.getSetting('default_voice_model', 'aura-orion-en');
+  defaultVoiceModel = savedVoice;
+  console.log(`📢 Loaded default voice from database: ${defaultVoiceModel}`);
+})();
 
 /**
  * GET /api/voice/models
@@ -128,7 +136,7 @@ router.get('/active', (req, res) => {
  * POST /api/voice/default
  * Set default voice for all future calls
  */
-router.post('/default', (req, res) => {
+router.post('/default', async (req, res) => {
   const { voiceId } = req.body;
 
   if (!voiceId) {
@@ -146,8 +154,12 @@ router.post('/default', (req, res) => {
     });
   }
 
-  // Update default voice
+  // Update default voice in memory
   defaultVoiceModel = voiceInfo.model;
+
+  // Persist to database
+  await db.setSetting('default_voice_model', voiceInfo.model);
+  console.log(`💾 Saved default voice to database: ${voiceInfo.model}`);
 
   res.json({
     success: true,

@@ -40,6 +40,14 @@ async function initDb() {
     `);
 
     await pool.query(`
+      CREATE TABLE IF NOT EXISTS settings (
+        key VARCHAR(255) PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_calls_call_sid ON calls(call_sid);
       CREATE INDEX IF NOT EXISTS idx_calls_start_time ON calls(start_time DESC);
       CREATE INDEX IF NOT EXISTS idx_transcripts_call_sid ON transcripts(call_sid);
