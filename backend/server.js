@@ -6,6 +6,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const twilio = require('twilio');
 const path = require('path');
+const basicAuth = require('express-basic-auth');
 
 // Import routes
 const twilioRoutes = require('./routes/twilio');
@@ -33,6 +34,29 @@ app.use(cors({
 }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Basic Authentication middleware for dashboard
+// Exclude Twilio webhooks and health check from auth
+const dashboardAuth = basicAuth({
+  users: {
+    [process.env.DASHBOARD_USERNAME || 'admin']: process.env.DASHBOARD_PASSWORD || 'password'
+  },
+  challenge: true, // Sends WWW-Authenticate header to prompt browser login
+  realm: 'Doug Dashboard',
+  unauthorizedResponse: (req) => {
+    return 'Unauthorized: Authentication required to access the dashboard.';
+  }
+});
+
+// Apply auth to all routes except Twilio webhooks and health check
+app.use((req, res, next) => {
+  // Skip auth for Twilio webhooks and health check
+  if (req.path.startsWith('/twilio/') || req.path === '/health') {
+    return next();
+  }
+  // Apply auth to everything else (dashboard, API, audio files)
+  return dashboardAuth(req, res, next);
+});
 
 // Health check endpoint
 app.get('/health', (req, res) => {
