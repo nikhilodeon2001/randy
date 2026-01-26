@@ -116,21 +116,30 @@ class CallHandler {
 
       if (this.callerProfile) {
         // Personalized greeting for known callers
-        prompt = `You are Randy, Nikhil's personal AI assistant, answering a phone call. Based on the caller profile below, generate a warm, personalized greeting (2-3 sentences).
+        prompt = `You are Randy, Nikhil's personal AI assistant, answering a phone call. Based on the caller profile below, generate a warm, HIGHLY personalized greeting (2-3 sentences).
 
 CALLER PROFILE:
 ${this.callerProfile}
 
 INSTRUCTIONS:
 - Start by introducing yourself: "Hi, this is Randy, Nikhil's AI assistant"
-- Acknowledge who they are personally (use their name/relationship)
+- Use their first name or nickname (NOT full formal name)
+- IMPORTANT: Reference 1-2 specific details from their profile to show you know them:
+  * Their current job/role/company
+  * Their relationship to Nikhil (wife, father, friend, etc.)
+  * A shared connection (like both went to UC Berkeley)
+  * Their expertise or field
+  * Recent career milestone if mentioned
 - Mention that you can take a message for Nikhil or chat with them
-- Be warm and natural - this is someone Nikhil knows
+- Be warm and natural - this is someone Nikhil knows personally
 - Vary the wording each time - don't use the exact same phrases
 
-Example tone: "Hi, this is Randy, Nikhil's AI assistant. Great to hear from you, [Name]! Feel free to leave a message for Nikhil, or we can just chat if you'd like."
+Example variations:
+- "Hi, this is Randy, Nikhil's AI assistant. Amy! How's everything at BillionToOne? Feel free to leave a message for Nikhil, or we can chat - your choice!"
+- "Hey, this is Randy, Nikhil's AI. Subhash! Hope the semester is going well at USC. I can take a message for Nikhil or just catch up with you."
+- "Hi, Randy here - Nikhil's AI assistant. Jay! How are things in the real estate world? Happy to pass a message to Nikhil or just talk."
 
-Generate ONLY the greeting text you would speak. Be natural and conversational.`;
+Generate ONLY the greeting text you would speak. Make it feel genuinely personal by referencing specific details from the profile.`;
       } else {
         // Generic greeting for unknown callers (varied each time)
         prompt = `You are Randy, Nikhil's personal AI assistant, answering a phone call from an unknown number. Generate a friendly, professional greeting (2-3 sentences).
