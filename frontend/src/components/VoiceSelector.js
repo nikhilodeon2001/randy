@@ -12,10 +12,15 @@ function VoiceSelector({ callSid, onVoiceChange }) {
 
   // Fetch available voice models on mount
   useEffect(() => {
-    fetchVoiceModels();
-    if (callSid) {
-      fetchCurrentVoice();
+    async function init() {
+      const voiceModels = await fetchVoiceModels();
+      if (callSid) {
+        fetchCurrentVoice();
+      } else {
+        fetchDefaultVoice(voiceModels);
+      }
     }
+    init();
   }, [callSid]);
 
   const fetchVoiceModels = async () => {
@@ -25,9 +30,11 @@ function VoiceSelector({ callSid, onVoiceChange }) {
       setVoices(data.models);
       setGroupedVoices(data.grouped);
       setIsLoading(false);
+      return data.models; // Return the models for use in init
     } catch (error) {
       console.error('Error fetching voice models:', error);
       setIsLoading(false);
+      return {};
     }
   };
 
@@ -43,6 +50,28 @@ function VoiceSelector({ callSid, onVoiceChange }) {
       }
     } catch (error) {
       console.error('Error fetching current voice:', error);
+    }
+  };
+
+  const fetchDefaultVoice = async (voiceModels) => {
+    try {
+      const response = await fetch('/api/voice/default');
+      const data = await response.json();
+
+      // Find the voice ID from the voice model name
+      const voiceId = Object.keys(voiceModels).find(
+        id => voiceModels[id]?.model === data.voiceModel
+      );
+
+      if (voiceId) {
+        setSelectedVoiceId(parseInt(voiceId));
+        setCurrentVoice({
+          currentVoice: data.voiceModel,
+          description: data.description
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching default voice:', error);
     }
   };
 
@@ -72,12 +101,6 @@ function VoiceSelector({ callSid, onVoiceChange }) {
         if (onVoiceChange) {
           onVoiceChange(data);
         }
-
-        // Show success feedback
-        const message = callSid
-          ? `✅ Voice changed to: ${data.description}`
-          : `✅ Default voice set to: ${data.description}`;
-        alert(message);
       }
     } catch (error) {
       console.error('Error changing voice:', error);
