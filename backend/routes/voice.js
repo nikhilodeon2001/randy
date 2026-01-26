@@ -8,11 +8,11 @@ const db = require('../db');
 const activeCallVoices = new Map();
 
 // Default voice (will be loaded from DB on startup)
-let defaultVoiceModel = 'aura-orion-en';
+let defaultVoiceModel = 'aura-2-orion-en';
 
 // Load default voice from database on startup
 (async () => {
-  const savedVoice = await db.getSetting('default_voice_model', 'aura-orion-en');
+  const savedVoice = await db.getSetting('default_voice_model', 'aura-2-orion-en');
   defaultVoiceModel = savedVoice;
   console.log(`📢 Loaded default voice from database: ${defaultVoiceModel}`);
 })();

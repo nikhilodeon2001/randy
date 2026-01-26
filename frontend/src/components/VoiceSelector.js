@@ -6,7 +6,7 @@ function VoiceSelector({ callSid, onVoiceChange }) {
   const [voices, setVoices] = useState({});
   const [groupedVoices, setGroupedVoices] = useState({});
   const [currentVoice, setCurrentVoice] = useState(null);
-  const [selectedVoiceId, setSelectedVoiceId] = useState(40); // Default to Orion (ID 40)
+  const [selectedVoiceId, setSelectedVoiceId] = useState(38); // Default to Orion (ID 38)
   const [isLoading, setIsLoading] = useState(true);
   const [isChanging, setIsChanging] = useState(false);
 
