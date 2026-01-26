@@ -38,7 +38,7 @@ router.post('/voice', async (req, res) => {
       input: 'speech',
       action: '/twilio/gather',
       method: 'POST',
-      speechTimeout: '2',  // 2 second silence after greeting
+      speechTimeout: '1',  // 1 second silence after greeting
       speechModel: 'phone_call',
       enhanced: true
     });
@@ -95,7 +95,7 @@ router.post('/gather', async (req, res) => {
         input: 'speech',
         action: '/twilio/gather',
         method: 'POST',
-        speechTimeout: '2',
+        speechTimeout: '1',
         speechModel: 'phone_call',
         enhanced: true
       });
@@ -124,7 +124,7 @@ router.post('/gather', async (req, res) => {
       input: 'speech',
       action: '/twilio/gather',
       method: 'POST',
-      speechTimeout: '2',
+      speechTimeout: '1',
       speechModel: 'phone_call',
       enhanced: true
     });
