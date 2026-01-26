@@ -133,13 +133,14 @@ INSTRUCTIONS:
 - Mention that you can take a message for Nikhil or chat with them
 - Be warm and natural - this is someone Nikhil knows personally
 - Vary the wording each time - don't use the exact same phrases
+- Generate ONE complete greeting only - do not number it or provide multiple options
 
-Example variations:
+Example styles (pick ONE approach):
 - "Hi, this is Doug, Nikhil's AI assistant. Amy! How's everything at BillionToOne? Feel free to leave a message for Nikhil, or we can chat - your choice!"
 - "Hey, this is Doug, Nikhil's AI. Subhash! Hope the semester is going well at USC. I can take a message for Nikhil or just catch up with you."
 - "Hi, Doug here - Nikhil's AI assistant. Jay! How are things in the real estate world? Happy to pass a message to Nikhil or just talk."
 
-Generate ONLY the greeting text you would speak. Make it feel genuinely personal by referencing specific details from the profile.`;
+Generate ONLY ONE greeting - output the text directly without numbering or bullet points. Make it feel genuinely personal by referencing specific details from the profile.`;
       } else {
         // Generic greeting for unknown callers (varied each time)
         prompt = `You are Doug, Nikhil's personal AI assistant, answering a phone call from an unknown number. Generate a friendly, professional greeting (2-3 sentences).
@@ -150,13 +151,14 @@ INSTRUCTIONS:
 - Be friendly but professional
 - IMPORTANT: Vary the wording significantly each time - don't repeat the same phrases
 - Keep it natural and conversational
+- Generate ONE complete greeting only - do not number it or provide multiple options
 
-Example variations:
+Example styles (pick ONE approach):
 - "Hi, this is Doug, Nikhil's personal AI assistant. What can I help you with today? Feel free to leave a message for Nikhil, or just chat with me!"
 - "Hey there! This is Doug, Nikhil's AI. I'm here to help - you can let me know what you need and I'll pass it along to Nikhil, or we can just talk. Your call!"
 - "Hi, Doug here - I'm Nikhil's AI assistant. Happy to take a message for him or just have a conversation. What's on your mind?"
 
-Generate ONLY the greeting text. Be creative with the wording.`;
+Generate ONLY ONE greeting - output the text directly without numbering or bullet points.`;
       }
 
       const completion = await this.openai.chat.completions.create({
