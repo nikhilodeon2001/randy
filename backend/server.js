@@ -48,13 +48,14 @@ const dashboardAuth = basicAuth({
   }
 });
 
-// Apply auth to all routes except Twilio webhooks and health check
+// Apply auth to all routes except Twilio webhooks, health check, and audio files
 app.use((req, res, next) => {
-  // Skip auth for Twilio webhooks and health check
-  if (req.path.startsWith('/twilio/') || req.path === '/health') {
+  // Skip auth for Twilio webhooks, health check, and audio files
+  // Audio files must be publicly accessible for Twilio to play them
+  if (req.path.startsWith('/twilio/') || req.path === '/health' || req.path.startsWith('/audio/')) {
     return next();
   }
-  // Apply auth to everything else (dashboard, API, audio files)
+  // Apply auth to everything else (dashboard, API endpoints)
   return dashboardAuth(req, res, next);
 });
 
