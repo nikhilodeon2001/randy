@@ -89,6 +89,8 @@ function App() {
           }}
         />
 
+        <VoicePreview />
+
         {!activeCall && (
           <div className="waiting">
             <h2>Waiting for incoming calls...</h2>
