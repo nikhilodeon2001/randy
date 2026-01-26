@@ -14,6 +14,7 @@ function App() {
   const [activeCall, setActiveCall] = useState(null);
   const [transcript, setTranscript] = useState([]);
   const [callHistory, setCallHistory] = useState([]);
+  const [currentTab, setCurrentTab] = useState('dashboard'); // 'dashboard' or 'voice-preview'
 
   useEffect(() => {
     // Listen for incoming calls
@@ -70,35 +71,54 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>🤖 Randy - AI Call Handler</h1>
+        <h1>🤖 Doug - AI Call Handler</h1>
         <p>Monitor AI conversations with spam callers in real-time</p>
+
+        <nav className="tab-nav">
+          <button
+            className={`tab-button ${currentTab === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setCurrentTab('dashboard')}
+          >
+            📊 Dashboard
+          </button>
+          <button
+            className={`tab-button ${currentTab === 'voice-preview' ? 'active' : ''}`}
+            onClick={() => setCurrentTab('voice-preview')}
+          >
+            🎙️ Voice Preview
+          </button>
+        </nav>
       </header>
 
       <main>
-        {activeCall && (
-          <LiveCall
-            call={activeCall}
-            transcript={transcript}
-          />
+        {currentTab === 'dashboard' ? (
+          <>
+            {activeCall && (
+              <LiveCall
+                call={activeCall}
+                transcript={transcript}
+              />
+            )}
+
+            <VoiceSelector
+              callSid={activeCall?.callSid || null}
+              onVoiceChange={(voiceData) => {
+                console.log('Voice changed:', voiceData);
+              }}
+            />
+
+            {!activeCall && (
+              <div className="waiting">
+                <h2>Waiting for incoming calls...</h2>
+                <p>Calls to your Twilio number will appear here</p>
+              </div>
+            )}
+
+            <CallHistory calls={callHistory} onRefresh={loadCallHistory} />
+          </>
+        ) : (
+          <VoicePreview />
         )}
-
-        <VoiceSelector
-          callSid={activeCall?.callSid || null}
-          onVoiceChange={(voiceData) => {
-            console.log('Voice changed:', voiceData);
-          }}
-        />
-
-        <VoicePreview />
-
-        {!activeCall && (
-          <div className="waiting">
-            <h2>Waiting for incoming calls...</h2>
-            <p>Calls to your Twilio number will appear here</p>
-          </div>
-        )}
-
-        <CallHistory calls={callHistory} onRefresh={loadCallHistory} />
       </main>
     </div>
   );

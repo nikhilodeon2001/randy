@@ -6,7 +6,7 @@ function VoiceSelector({ callSid, onVoiceChange }) {
   const [voices, setVoices] = useState({});
   const [groupedVoices, setGroupedVoices] = useState({});
   const [currentVoice, setCurrentVoice] = useState(null);
-  const [selectedVoiceId, setSelectedVoiceId] = useState(1); // Default to Thalia
+  const [selectedVoiceId, setSelectedVoiceId] = useState(40); // Default to Orion (ID 40)
   const [isLoading, setIsLoading] = useState(true);
   const [isChanging, setIsChanging] = useState(false);
 
@@ -37,12 +37,9 @@ function VoiceSelector({ callSid, onVoiceChange }) {
       const data = await response.json();
       setCurrentVoice(data);
 
-      // Find voice ID from model name
-      const voiceId = Object.keys(voices).find(
-        id => voices[id].model === data.currentVoice
-      );
-      if (voiceId) {
-        setSelectedVoiceId(parseInt(voiceId));
+      // Use the voiceId directly from the API response
+      if (data.voiceId) {
+        setSelectedVoiceId(data.voiceId);
       }
     } catch (error) {
       console.error('Error fetching current voice:', error);

@@ -30,14 +30,18 @@ router.get('/models', (req, res) => {
  */
 router.get('/current/:callSid', (req, res) => {
   const { callSid } = req.params;
-  const currentVoice = activeCallVoices.get(callSid) || 'aura-2-thalia-en';
+  const currentVoice = activeCallVoices.get(callSid) || defaultVoiceModel;
 
   // Find the voice info
   const models = ttsService.getVoiceModels();
   const voiceInfo = Object.values(models).find(v => v.model === currentVoice);
 
+  // Find the voice ID
+  const voiceId = Object.keys(models).find(key => models[key].model === currentVoice) || 40;
+
   res.json({
     callSid,
+    voiceId: parseInt(voiceId),
     currentVoice,
     description: voiceInfo?.description || 'Default voice'
   });

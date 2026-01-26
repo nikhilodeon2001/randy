@@ -18,6 +18,39 @@
 .App-header p {
   font-size: 1.1rem;
   opacity: 0.9;
+  margin-bottom: 1.5rem;
+}
+
+.tab-nav {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.tab-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.tab-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+.tab-button.active {
+  background: rgba(255, 255, 255, 0.95);
+  color: #667eea;
+  border-color: rgba(255, 255, 255, 0.95);
+  font-weight: 600;
 }
 
 main {
