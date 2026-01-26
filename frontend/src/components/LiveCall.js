@@ -81,7 +81,7 @@ function LiveCall({ call, transcript }) {
               >
                 <div className="message-header">
                   <span className="role">
-                    {message.role === 'assistant' ? '🤖 Randy' : '📞 Caller'}
+                    {message.role === 'assistant' ? '🤖 Doug' : '📞 Caller'}
                   </span>
                   <span className="time">{formatTime(message.timestamp)}</span>
                 </div>
