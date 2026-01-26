@@ -32,18 +32,19 @@ router.post('/voice', async (req, res) => {
     const audioResult = await callHandler.generateAudio(greeting);
     const audioUrl = `${req.protocol}://${req.get('host')}/audio/${audioResult.filename}`;
 
-    // Play Deepgram-generated audio
-    twiml.play(audioUrl);
-
     // Use <Gather> to collect caller's speech
-    twiml.gather({
+    // Play audio INSIDE gather so Twilio listens during and after the greeting
+    const gather = twiml.gather({
       input: 'speech',
       action: '/twilio/gather',
       method: 'POST',
-      speechTimeout: '0.5',  // 0.5 second silence = ultra responsive
+      speechTimeout: '1',  // 1 second silence after greeting
       speechModel: 'phone_call',
       enhanced: true
     });
+
+    // Play Deepgram-generated audio inside the gather
+    gather.play(audioUrl);
 
     // Redirect back to gather more input
     twiml.redirect('/twilio/gather');
@@ -89,15 +90,17 @@ router.post('/gather', async (req, res) => {
       console.log('No speech detected, prompting again');
       const noSpeechResult = await callHandler.generateAudio('Hello? I didn\'t hear you. Are you there?');
       const noSpeechUrl = `${req.protocol}://${req.get('host')}/audio/${noSpeechResult.filename}`;
-      twiml.play(noSpeechUrl);
-      twiml.gather({
+
+      const gather = twiml.gather({
         input: 'speech',
         action: '/twilio/gather',
         method: 'POST',
-        speechTimeout: '0.5',
+        speechTimeout: '1',
         speechModel: 'phone_call',
         enhanced: true
       });
+      gather.play(noSpeechUrl);
+
       twiml.redirect('/twilio/gather');
       res.type('text/xml');
       res.send(twiml.toString());
@@ -116,18 +119,18 @@ router.post('/gather', async (req, res) => {
     const totalDuration = Date.now() - overallStart;
     console.log(`🎯 TOTAL response time: ${totalDuration}ms (speech → audio ready)`);
 
-    // Play the AI's response
-    twiml.play(responseUrl);
-
     // Continue gathering input
-    twiml.gather({
+    const gather = twiml.gather({
       input: 'speech',
       action: '/twilio/gather',
       method: 'POST',
-      speechTimeout: '0.5',
+      speechTimeout: '1',
       speechModel: 'phone_call',
       enhanced: true
     });
+
+    // Play the AI's response inside gather
+    gather.play(responseUrl);
 
     // Just redirect back - no need to generate "still there" audio every time
     twiml.redirect('/twilio/gather');
