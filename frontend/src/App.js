@@ -4,6 +4,7 @@ import './App.css';
 import LiveCall from './components/LiveCall';
 import CallHistory from './components/CallHistory';
 import VoiceSelector from './components/VoiceSelector';
+import VoicePreview from './components/VoicePreview';
 
 // In production, connect to same origin (Heroku serves both frontend and backend)
 // In development, connect to localhost:3000
