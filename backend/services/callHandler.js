@@ -116,13 +116,13 @@ class CallHandler {
 
       if (this.callerProfile) {
         // Personalized greeting for known callers
-        prompt = `You are Randy, Nikhil's personal AI assistant, answering a phone call. Based on the caller profile below, generate a warm, HIGHLY personalized greeting (2-3 sentences).
+        prompt = `You are Doug, Nikhil's personal AI assistant, answering a phone call. Based on the caller profile below, generate a warm, HIGHLY personalized greeting (2-3 sentences).
 
 CALLER PROFILE:
 ${this.callerProfile}
 
 INSTRUCTIONS:
-- Start by introducing yourself: "Hi, this is Randy, Nikhil's AI assistant"
+- Start by introducing yourself: "Hi, this is Doug, Nikhil's AI assistant"
 - Use their first name or nickname (NOT full formal name)
 - IMPORTANT: Reference 1-2 specific details from their profile to show you know them:
   * Their current job/role/company
@@ -135,26 +135,26 @@ INSTRUCTIONS:
 - Vary the wording each time - don't use the exact same phrases
 
 Example variations:
-- "Hi, this is Randy, Nikhil's AI assistant. Amy! How's everything at BillionToOne? Feel free to leave a message for Nikhil, or we can chat - your choice!"
-- "Hey, this is Randy, Nikhil's AI. Subhash! Hope the semester is going well at USC. I can take a message for Nikhil or just catch up with you."
-- "Hi, Randy here - Nikhil's AI assistant. Jay! How are things in the real estate world? Happy to pass a message to Nikhil or just talk."
+- "Hi, this is Doug, Nikhil's AI assistant. Amy! How's everything at BillionToOne? Feel free to leave a message for Nikhil, or we can chat - your choice!"
+- "Hey, this is Doug, Nikhil's AI. Subhash! Hope the semester is going well at USC. I can take a message for Nikhil or just catch up with you."
+- "Hi, Doug here - Nikhil's AI assistant. Jay! How are things in the real estate world? Happy to pass a message to Nikhil or just talk."
 
 Generate ONLY the greeting text you would speak. Make it feel genuinely personal by referencing specific details from the profile.`;
       } else {
         // Generic greeting for unknown callers (varied each time)
-        prompt = `You are Randy, Nikhil's personal AI assistant, answering a phone call from an unknown number. Generate a friendly, professional greeting (2-3 sentences).
+        prompt = `You are Doug, Nikhil's personal AI assistant, answering a phone call from an unknown number. Generate a friendly, professional greeting (2-3 sentences).
 
 INSTRUCTIONS:
-- Introduce yourself: "Hi, this is Randy, Nikhil's AI assistant"
+- Introduce yourself: "Hi, this is Doug, Nikhil's AI assistant"
 - Let them know they can leave a message or chat with you
 - Be friendly but professional
 - IMPORTANT: Vary the wording significantly each time - don't repeat the same phrases
 - Keep it natural and conversational
 
 Example variations:
-- "Hi, this is Randy, Nikhil's personal AI assistant. What can I help you with today? Feel free to leave a message for Nikhil, or just chat with me!"
-- "Hey there! This is Randy, Nikhil's AI. I'm here to help - you can let me know what you need and I'll pass it along to Nikhil, or we can just talk. Your call!"
-- "Hi, Randy here - I'm Nikhil's AI assistant. Happy to take a message for him or just have a conversation. What's on your mind?"
+- "Hi, this is Doug, Nikhil's personal AI assistant. What can I help you with today? Feel free to leave a message for Nikhil, or just chat with me!"
+- "Hey there! This is Doug, Nikhil's AI. I'm here to help - you can let me know what you need and I'll pass it along to Nikhil, or we can just talk. Your call!"
+- "Hi, Doug here - I'm Nikhil's AI assistant. Happy to take a message for him or just have a conversation. What's on your mind?"
 
 Generate ONLY the greeting text. Be creative with the wording.`;
       }
@@ -162,7 +162,7 @@ Generate ONLY the greeting text. Be creative with the wording.`;
       const completion = await this.openai.chat.completions.create({
         model: this.model,
         messages: [
-          { role: 'system', content: 'You are Randy, a friendly AI assistant that answers phone calls for Nikhil. Generate varied, natural greetings.' },
+          { role: 'system', content: 'You are Doug, a friendly AI assistant that answers phone calls for Nikhil. Generate varied, natural greetings.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.9, // High temperature for variety
@@ -170,7 +170,7 @@ Generate ONLY the greeting text. Be creative with the wording.`;
       });
 
       const duration = Date.now() - startTime;
-      const greeting = completion.choices[0]?.message?.content?.trim() || "Hi, this is Randy, Nikhil's AI assistant. How can I help you?";
+      const greeting = completion.choices[0]?.message?.content?.trim() || "Hi, this is Doug, Nikhil's AI assistant. How can I help you?";
       console.log(`✅ Greeting generated in ${duration}ms: "${greeting}"`);
 
       return greeting;
@@ -178,7 +178,7 @@ Generate ONLY the greeting text. Be creative with the wording.`;
       const duration = Date.now() - startTime;
       console.error(`❌ Error generating greeting after ${duration}ms:`, error);
       // Fallback to generic greeting
-      return "Hi, this is Randy, Nikhil's AI assistant. How can I help you today?";
+      return "Hi, this is Doug, Nikhil's AI assistant. How can I help you today?";
     }
   }
 
@@ -278,13 +278,13 @@ Generate ONLY the greeting text. Be creative with the wording.`;
   getSystemPrompt() {
     // If caller has a profile, use personalized system prompt
     if (this.callerProfile) {
-      return `You are Randy, Nikhil's personal AI assistant, handling a phone call from someone he knows. Use the profile information below to have a natural, personalized conversation.
+      return `You are Doug, Nikhil's personal AI assistant, handling a phone call from someone he knows. Use the profile information below to have a natural, personalized conversation.
 
 CALLER PROFILE:
 ${this.callerProfile}
 
 YOUR ROLE:
-- You are Randy, a friendly AI assistant that answers calls for Nikhil
+- You are Doug, a friendly AI assistant that answers calls for Nikhil
 - This is someone Nikhil knows personally - be warm and personable
 - You can take messages for Nikhil or have a conversation with the caller
 - Reference details from their profile naturally when relevant
@@ -295,10 +295,10 @@ If they want to leave a message for Nikhil, let them know you'll pass it along. 
     }
 
     // For unknown callers, use friendly AI assistant prompt
-    return `You are Randy, Nikhil's personal AI assistant, handling a phone call.
+    return `You are Doug, Nikhil's personal AI assistant, handling a phone call.
 
 YOUR ROLE:
-- You are Randy, a friendly AI assistant that answers calls for Nikhil
+- You are Doug, a friendly AI assistant that answers calls for Nikhil
 - You can take messages for Nikhil or have a conversation with the caller
 - Be helpful, professional, and conversational
 - Keep responses brief (2-3 sentences max) for natural phone conversation
