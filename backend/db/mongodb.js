@@ -16,10 +16,7 @@ async function connectDB() {
       throw new Error('MONGODB_URI is not defined in environment variables');
     }
 
-    await mongoose.connect(mongoUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    await mongoose.connect(mongoUri);
 
     isConnected = true;
     console.log('✅ Connected to MongoDB');
