@@ -67,7 +67,25 @@ async function updateCall(callSid, updates) {
 async function getCallBySid(callSid) {
   try {
     const call = await Call.findOne({ callSid });
-    return call ? call.toObject() : null;
+    if (!call) return null;
+
+    // Transform MongoDB camelCase to API snake_case for frontend compatibility
+    const obj = call.toObject();
+    return {
+      call_sid: obj.callSid,
+      from_number: obj.fromNumber,
+      to_number: obj.toNumber,
+      start_time: obj.startTime,
+      end_time: obj.endTime,
+      duration: obj.duration,
+      status: obj.status,
+      message_count: obj.messageCount,
+      recording_url: obj.recordingUrl,
+      recording_sid: obj.recordingSid,
+      recording_duration: obj.recordingDuration,
+      current_voice_model: obj.currentVoiceModel,
+      created_at: obj.createdAt
+    };
   } catch (error) {
     console.error('Error fetching call:', error);
     throw error;
@@ -83,7 +101,25 @@ async function getAllCalls(limit = 100) {
       .sort({ startTime: -1 })
       .limit(limit);
 
-    return calls.map(call => call.toObject());
+    // Transform MongoDB camelCase to API snake_case for frontend compatibility
+    return calls.map(call => {
+      const obj = call.toObject();
+      return {
+        call_sid: obj.callSid,
+        from_number: obj.fromNumber,
+        to_number: obj.toNumber,
+        start_time: obj.startTime,
+        end_time: obj.endTime,
+        duration: obj.duration,
+        status: obj.status,
+        message_count: obj.messageCount,
+        recording_url: obj.recordingUrl,
+        recording_sid: obj.recordingSid,
+        recording_duration: obj.recordingDuration,
+        current_voice_model: obj.currentVoiceModel,
+        created_at: obj.createdAt
+      };
+    });
   } catch (error) {
     console.error('Error fetching calls:', error);
     throw error;
