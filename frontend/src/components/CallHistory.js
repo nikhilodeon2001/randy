@@ -55,6 +55,16 @@ function CallHistory({ calls, onRefresh }) {
                 <span>📅 {formatDate(call.start_time)}</span>
                 {call.duration && <span>⏱️ {formatDuration(call.duration)}</span>}
                 <span>💬 {call.message_count} messages</span>
+                {call.message_count > 0 && (
+                  <button
+                    onClick={() => handleViewTranscript(call.call_sid)}
+                    className="view-transcript-icon-btn"
+                    disabled={loadingTranscript}
+                    title="View transcript"
+                  >
+                    📄
+                  </button>
+                )}
               </div>
               {call.recording_url && (
                 <div className="recording-player">
@@ -65,15 +75,6 @@ function CallHistory({ calls, onRefresh }) {
                     ⬇️ Download
                   </a>
                 </div>
-              )}
-              {call.message_count > 0 && (
-                <button
-                  onClick={() => handleViewTranscript(call.call_sid)}
-                  className="view-transcript-btn"
-                  disabled={loadingTranscript}
-                >
-                  {loadingTranscript ? '⏳ Loading...' : '💬 View Transcript'}
-                </button>
               )}
             </div>
           ))}
