@@ -139,12 +139,6 @@ const profileSchema = new mongoose.Schema({
   }
 });
 
-// Update updatedAt on save
-profileSchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
-  next();
-});
-
 // Create models
 const Call = mongoose.model('Call', callSchema);
 const Transcript = mongoose.model('Transcript', transcriptSchema);
