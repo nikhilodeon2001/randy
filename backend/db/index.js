@@ -1,59 +1,12 @@
-const { Pool } = require('pg');
-
-// Create PostgreSQL connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+const { connectDB, Call, Transcript, Setting, Profile } = require('./mongodb');
 
 /**
- * Initialize database tables
+ * Initialize database connection
  */
 async function initDb() {
   try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS calls (
-        id SERIAL PRIMARY KEY,
-        call_sid VARCHAR(255) UNIQUE NOT NULL,
-        from_number VARCHAR(50) NOT NULL,
-        to_number VARCHAR(50) NOT NULL,
-        start_time TIMESTAMP NOT NULL,
-        end_time TIMESTAMP,
-        duration INTEGER,
-        status VARCHAR(50) NOT NULL,
-        message_count INTEGER DEFAULT 0,
-        recording_url TEXT,
-        recording_sid VARCHAR(255),
-        recording_duration INTEGER,
-        current_voice_model VARCHAR(50) DEFAULT 'aura-2-thalia-en',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS transcripts (
-        id SERIAL PRIMARY KEY,
-        call_sid VARCHAR(255) UNIQUE NOT NULL REFERENCES calls(call_sid) ON DELETE CASCADE,
-        messages JSONB NOT NULL,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS settings (
-        key VARCHAR(255) PRIMARY KEY,
-        value TEXT NOT NULL,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_calls_call_sid ON calls(call_sid);
-      CREATE INDEX IF NOT EXISTS idx_calls_start_time ON calls(start_time DESC);
-      CREATE INDEX IF NOT EXISTS idx_transcripts_call_sid ON transcripts(call_sid);
-    `);
-
-    console.log('✅ Database tables initialized');
+    await connectDB();
+    console.log('✅ Database initialized');
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;
@@ -67,14 +20,15 @@ async function createCall(callData) {
   const { callSid, fromNumber, toNumber, startTime, status } = callData;
 
   try {
-    const result = await pool.query(
-      `INSERT INTO calls (call_sid, from_number, to_number, start_time, status)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING *`,
-      [callSid, fromNumber, toNumber, startTime, status]
-    );
+    const call = await Call.create({
+      callSid,
+      fromNumber,
+      toNumber,
+      startTime,
+      status
+    });
 
-    return result.rows[0];
+    return call.toObject();
   } catch (error) {
     console.error('Error creating call:', error);
     throw error;
@@ -88,18 +42,19 @@ async function updateCall(callSid, updates) {
   const { endTime, duration, status, messageCount } = updates;
 
   try {
-    const result = await pool.query(
-      `UPDATE calls
-       SET end_time = COALESCE($2, end_time),
-           duration = COALESCE($3, duration),
-           status = COALESCE($4, status),
-           message_count = COALESCE($5, message_count)
-       WHERE call_sid = $1
-       RETURNING *`,
-      [callSid, endTime, duration, status, messageCount]
+    const updateData = {};
+    if (endTime !== undefined) updateData.endTime = endTime;
+    if (duration !== undefined) updateData.duration = duration;
+    if (status !== undefined) updateData.status = status;
+    if (messageCount !== undefined) updateData.messageCount = messageCount;
+
+    const call = await Call.findOneAndUpdate(
+      { callSid },
+      updateData,
+      { new: true }
     );
 
-    return result.rows[0];
+    return call ? call.toObject() : null;
   } catch (error) {
     console.error('Error updating call:', error);
     throw error;
@@ -111,12 +66,8 @@ async function updateCall(callSid, updates) {
  */
 async function getCallBySid(callSid) {
   try {
-    const result = await pool.query(
-      'SELECT * FROM calls WHERE call_sid = $1',
-      [callSid]
-    );
-
-    return result.rows[0];
+    const call = await Call.findOne({ callSid });
+    return call ? call.toObject() : null;
   } catch (error) {
     console.error('Error fetching call:', error);
     throw error;
@@ -128,14 +79,11 @@ async function getCallBySid(callSid) {
  */
 async function getAllCalls(limit = 100) {
   try {
-    const result = await pool.query(
-      `SELECT * FROM calls
-       ORDER BY start_time DESC
-       LIMIT $1`,
-      [limit]
-    );
+    const calls = await Call.find()
+      .sort({ startTime: -1 })
+      .limit(limit);
 
-    return result.rows;
+    return calls.map(call => call.toObject());
   } catch (error) {
     console.error('Error fetching calls:', error);
     throw error;
@@ -147,23 +95,20 @@ async function getAllCalls(limit = 100) {
  */
 async function updateTranscript(callSid, messages) {
   try {
-    const result = await pool.query(
-      `INSERT INTO transcripts (call_sid, messages)
-       VALUES ($1, $2)
-       ON CONFLICT (call_sid)
-       DO UPDATE SET messages = $2, updated_at = CURRENT_TIMESTAMP
-       RETURNING *`,
-      [callSid, JSON.stringify(messages)]
+    const transcript = await Transcript.findOneAndUpdate(
+      { callSid },
+      {
+        messages,
+        updatedAt: new Date()
+      },
+      {
+        upsert: true,
+        new: true
+      }
     );
 
-    return result.rows[0];
+    return transcript ? transcript.toObject() : null;
   } catch (error) {
-    // If foreign key constraint fails, create the call first
-    if (error.code === '23503') {
-      console.warn(`Call ${callSid} not found, will be created when call starts`);
-      return null;
-    }
-
     console.error('Error updating transcript:', error);
     throw error;
   }
@@ -174,12 +119,8 @@ async function updateTranscript(callSid, messages) {
  */
 async function getTranscript(callSid) {
   try {
-    const result = await pool.query(
-      'SELECT * FROM transcripts WHERE call_sid = $1',
-      [callSid]
-    );
-
-    return result.rows[0];
+    const transcript = await Transcript.findOne({ callSid });
+    return transcript ? transcript.toObject() : null;
   } catch (error) {
     console.error('Error fetching transcript:', error);
     throw error;
@@ -191,7 +132,8 @@ async function getTranscript(callSid) {
  */
 async function deleteCall(callSid) {
   try {
-    await pool.query('DELETE FROM calls WHERE call_sid = $1', [callSid]);
+    await Call.deleteOne({ callSid });
+    await Transcript.deleteOne({ callSid });
   } catch (error) {
     console.error('Error deleting call:', error);
     throw error;
@@ -203,11 +145,8 @@ async function deleteCall(callSid) {
  */
 async function getSetting(key, defaultValue = null) {
   try {
-    const result = await pool.query(
-      'SELECT value FROM settings WHERE key = $1',
-      [key]
-    );
-    return result.rows.length > 0 ? result.rows[0].value : defaultValue;
+    const setting = await Setting.findOne({ key });
+    return setting ? setting.value : defaultValue;
   } catch (error) {
     console.error(`Error getting setting ${key}:`, error);
     return defaultValue;
@@ -219,12 +158,15 @@ async function getSetting(key, defaultValue = null) {
  */
 async function setSetting(key, value) {
   try {
-    await pool.query(
-      `INSERT INTO settings (key, value, updated_at)
-       VALUES ($1, $2, CURRENT_TIMESTAMP)
-       ON CONFLICT (key)
-       DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP`,
-      [key, value]
+    await Setting.findOneAndUpdate(
+      { key },
+      {
+        value,
+        updatedAt: new Date()
+      },
+      {
+        upsert: true
+      }
     );
     return true;
   } catch (error) {
@@ -232,6 +174,110 @@ async function setSetting(key, value) {
     return false;
   }
 }
+
+/**
+ * PROFILE FUNCTIONS (NEW)
+ */
+
+/**
+ * Create a new profile
+ */
+async function createProfile(profileData) {
+  const { phoneNumber, profileContent, sourceType, sourceData, metadata } = profileData;
+
+  try {
+    const profile = await Profile.create({
+      phoneNumber,
+      profileContent,
+      sourceType,
+      sourceData,
+      metadata: metadata || {}
+    });
+
+    return profile.toObject();
+  } catch (error) {
+    console.error('Error creating profile:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get profile by phone number
+ */
+async function getProfileByPhone(phoneNumber) {
+  try {
+    const profile = await Profile.findOne({ phoneNumber });
+    return profile ? profile.toObject() : null;
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all profiles
+ */
+async function getAllProfiles() {
+  try {
+    const profiles = await Profile.find()
+      .sort({ createdAt: -1 });
+
+    return profiles.map(profile => profile.toObject());
+  } catch (error) {
+    console.error('Error fetching profiles:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update profile
+ */
+async function updateProfile(phoneNumber, updates) {
+  try {
+    const profile = await Profile.findOneAndUpdate(
+      { phoneNumber },
+      {
+        ...updates,
+        updatedAt: new Date()
+      },
+      { new: true }
+    );
+
+    return profile ? profile.toObject() : null;
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete profile
+ */
+async function deleteProfile(phoneNumber) {
+  try {
+    await Profile.deleteOne({ phoneNumber });
+  } catch (error) {
+    console.error('Error deleting profile:', error);
+    throw error;
+  }
+}
+
+// For backward compatibility with direct pool access (used in voice.js)
+const pool = {
+  query: async (sql, params) => {
+    // This is a compatibility shim for the one place that uses pool.query directly
+    // In voice.js line 97-100, it updates the voice model
+    if (sql.includes('UPDATE calls SET current_voice_model')) {
+      const [voiceModel, callSid] = params;
+      await Call.findOneAndUpdate(
+        { callSid },
+        { currentVoiceModel: voiceModel }
+      );
+      return { rows: [] };
+    }
+    throw new Error('Direct pool.query not supported with MongoDB. Please use db functions.');
+  }
+};
 
 module.exports = {
   initDb,
@@ -244,5 +290,10 @@ module.exports = {
   deleteCall,
   getSetting,
   setSetting,
+  createProfile,
+  getProfileByPhone,
+  getAllProfiles,
+  updateProfile,
+  deleteProfile,
   pool
 };

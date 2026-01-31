@@ -1,8 +1,4 @@
-const fs = require('fs').promises;
-const path = require('path');
-
-// Directory where caller profiles are stored
-const PROFILES_DIR = path.join(__dirname, '..', 'profiles');
+const db = require('../db');
 
 /**
  * Load caller profile by phone number
@@ -11,23 +7,16 @@ const PROFILES_DIR = path.join(__dirname, '..', 'profiles');
  */
 async function loadCallerProfile(phoneNumber) {
   try {
-    // Construct profile file path
-    const profilePath = path.join(PROFILES_DIR, `${phoneNumber}.txt`);
+    const profile = await db.getProfileByPhone(phoneNumber);
 
-    // Check if profile exists
-    try {
-      await fs.access(profilePath);
-    } catch {
-      // Profile doesn't exist - this is normal for unknown callers
+    if (!profile) {
       console.log(`No profile found for ${phoneNumber}`);
       return null;
     }
 
-    // Read profile content
-    const profileContent = await fs.readFile(profilePath, 'utf-8');
-    console.log(`✅ Loaded profile for ${phoneNumber} (${profileContent.length} characters)`);
+    console.log(`✅ Loaded profile for ${phoneNumber} (${profile.profileContent.length} characters)`);
+    return profile.profileContent;
 
-    return profileContent.trim();
   } catch (error) {
     console.error(`Error loading profile for ${phoneNumber}:`, error);
     return null;
@@ -41,10 +30,10 @@ async function loadCallerProfile(phoneNumber) {
  */
 async function hasCallerProfile(phoneNumber) {
   try {
-    const profilePath = path.join(PROFILES_DIR, `${phoneNumber}.txt`);
-    await fs.access(profilePath);
-    return true;
-  } catch {
+    const profile = await db.getProfileByPhone(phoneNumber);
+    return profile !== null;
+  } catch (error) {
+    console.error(`Error checking profile for ${phoneNumber}:`, error);
     return false;
   }
 }
@@ -55,12 +44,8 @@ async function hasCallerProfile(phoneNumber) {
  */
 async function listCallerProfiles() {
   try {
-    const files = await fs.readdir(PROFILES_DIR);
-    const profileNumbers = files
-      .filter(file => file.endsWith('.txt'))
-      .map(file => file.replace('.txt', ''));
-
-    return profileNumbers;
+    const profiles = await db.getAllProfiles();
+    return profiles.map(profile => profile.phoneNumber);
   } catch (error) {
     console.error('Error listing caller profiles:', error);
     return [];

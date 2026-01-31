@@ -5,6 +5,7 @@ import LiveCall from './components/LiveCall';
 import CallHistory from './components/CallHistory';
 import VoiceSelector from './components/VoiceSelector';
 import VoicePreview from './components/VoicePreview';
+import ProfileMaker from './components/ProfileMaker';
 
 // In production, connect to same origin (Heroku serves both frontend and backend)
 // In development, connect to localhost:3000
@@ -87,6 +88,12 @@ function App() {
           >
             🎙️ Voice Preview
           </button>
+          <button
+            className={`tab-button ${currentTab === 'profile-maker' ? 'active' : ''}`}
+            onClick={() => setCurrentTab('profile-maker')}
+          >
+            🔖 Profile Maker
+          </button>
         </nav>
       </header>
 
@@ -116,8 +123,10 @@ function App() {
 
             <CallHistory calls={callHistory} onRefresh={loadCallHistory} />
           </>
-        ) : (
+        ) : currentTab === 'voice-preview' ? (
           <VoicePreview />
+        ) : (
+          <ProfileMaker />
         )}
       </main>
     </div>
