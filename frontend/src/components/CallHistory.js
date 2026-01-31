@@ -5,6 +5,7 @@ import TranscriptModal from './TranscriptModal';
 function CallHistory({ calls, onRefresh }) {
   const [viewingTranscript, setViewingTranscript] = useState(null);
   const [loadingTranscript, setLoadingTranscript] = useState(false);
+  const [phoneFilter, setPhoneFilter] = useState('');
   const formatDuration = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -34,6 +35,11 @@ function CallHistory({ calls, onRefresh }) {
     }
   };
 
+  // Filter calls based on phone number
+  const filteredCalls = calls.filter(call =>
+    call.from_number.includes(phoneFilter)
+  );
+
   return (
     <div className="call-history">
       <div className="history-header">
@@ -41,11 +47,30 @@ function CallHistory({ calls, onRefresh }) {
         <button onClick={onRefresh} className="refresh-btn">🔄 Refresh</button>
       </div>
 
-      {calls.length === 0 ? (
-        <p className="empty">No calls yet</p>
+      <div className="filter-container">
+        <input
+          type="text"
+          placeholder="Filter by phone number..."
+          value={phoneFilter}
+          onChange={(e) => setPhoneFilter(e.target.value)}
+          className="phone-filter-input"
+        />
+        {phoneFilter && (
+          <button
+            onClick={() => setPhoneFilter('')}
+            className="clear-filter-btn"
+            title="Clear filter"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      {filteredCalls.length === 0 ? (
+        <p className="empty">{phoneFilter ? 'No matching calls' : 'No calls yet'}</p>
       ) : (
         <div className="calls-list">
-          {calls.map((call) => (
+          {filteredCalls.map((call) => (
             <div key={call.call_sid} className="call-card">
               <div className="call-card-header">
                 <span className="from-number">{call.from_number}</span>
