@@ -53,6 +53,7 @@ function App() {
       console.log('Call ended:', data);
       if (data.callSid === activeCall?.callSid) {
         setActiveCall(null);
+        setTranscript([]);
         loadCallHistory();
       }
     });
