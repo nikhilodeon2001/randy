@@ -18,6 +18,21 @@ function App() {
   const [currentTab, setCurrentTab] = useState('dashboard'); // 'dashboard' or 'voice-preview'
 
   useEffect(() => {
+    // Request active call when socket connects/reconnects
+    const handleConnect = () => {
+      console.log('Socket connected, requesting active call...');
+      socket.emit('get:active-call');
+    };
+
+    // Listen for active call response (for page refresh during active call)
+    socket.on('active-call', (data) => {
+      console.log('Active call response:', data);
+      if (data) {
+        setActiveCall(data.call);
+        setTranscript(data.transcript || []);
+      }
+    });
+
     // Listen for incoming calls
     socket.on('call:started', (data) => {
       console.log('Call started:', data);
@@ -48,10 +63,20 @@ function App() {
       // You can show a notification or update UI here if needed
     });
 
+    // Handle socket connection
+    socket.on('connect', handleConnect);
+
+    // If already connected, request active call immediately
+    if (socket.connected) {
+      handleConnect();
+    }
+
     // Load call history on mount
     loadCallHistory();
 
     return () => {
+      socket.off('connect', handleConnect);
+      socket.off('active-call');
       socket.off('call:started');
       socket.off('call:transcript');
       socket.off('call:ended');

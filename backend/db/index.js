@@ -156,7 +156,15 @@ async function updateTranscript(callSid, messages) {
 async function getTranscript(callSid) {
   try {
     const transcript = await Transcript.findOne({ callSid });
-    return transcript ? transcript.toObject() : null;
+    if (!transcript) return null;
+
+    // Transform MongoDB camelCase to API snake_case for frontend compatibility
+    const obj = transcript.toObject();
+    return {
+      call_sid: obj.callSid,
+      messages: obj.messages,
+      updated_at: obj.updatedAt
+    };
   } catch (error) {
     console.error('Error fetching transcript:', error);
     throw error;

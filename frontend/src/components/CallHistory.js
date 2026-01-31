@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './CallHistory.css';
+import TranscriptModal from './TranscriptModal';
 
 function CallHistory({ calls, onRefresh }) {
+  const [viewingTranscript, setViewingTranscript] = useState(null);
+  const [loadingTranscript, setLoadingTranscript] = useState(false);
   const formatDuration = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -10,6 +13,25 @@ function CallHistory({ calls, onRefresh }) {
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleString();
+  };
+
+  const handleViewTranscript = async (callSid) => {
+    setLoadingTranscript(true);
+    try {
+      const response = await fetch(`/api/calls/${callSid}/transcript`);
+
+      if (!response.ok) {
+        throw new Error('Failed to load transcript');
+      }
+
+      const data = await response.json();
+      setViewingTranscript(data);
+    } catch (error) {
+      console.error('Error loading transcript:', error);
+      alert('Failed to load transcript. It may not be available for this call.');
+    } finally {
+      setLoadingTranscript(false);
+    }
   };
 
   return (
@@ -44,9 +66,25 @@ function CallHistory({ calls, onRefresh }) {
                   </a>
                 </div>
               )}
+              {call.message_count > 0 && (
+                <button
+                  onClick={() => handleViewTranscript(call.call_sid)}
+                  className="view-transcript-btn"
+                  disabled={loadingTranscript}
+                >
+                  {loadingTranscript ? '⏳ Loading...' : '💬 View Transcript'}
+                </button>
+              )}
             </div>
           ))}
         </div>
+      )}
+
+      {viewingTranscript && (
+        <TranscriptModal
+          transcript={viewingTranscript}
+          onClose={() => setViewingTranscript(null)}
+        />
       )}
     </div>
   );

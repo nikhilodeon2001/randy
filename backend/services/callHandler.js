@@ -3,6 +3,7 @@ const db = require('../db');
 const ttsService = require('./ttsService');
 const { getVoiceForCall, setVoiceForCall, getDefaultVoice } = require('../routes/voice');
 const { loadCallerProfile } = require('./callerProfiles');
+const { registerActiveCall, unregisterActiveCall } = require('./websocket');
 const twilio = require('twilio');
 
 class CallHandler {
@@ -59,12 +60,16 @@ class CallHandler {
       status: 'in-progress'
     });
 
-    // Emit to dashboard
-    this.io.emit('call:started', {
+    // Register as active call
+    const callData = {
       callSid: this.callSid,
       from: this.fromNumber,
       startTime: this.startTime
-    });
+    };
+    registerActiveCall(this.callSid, callData);
+
+    // Emit to dashboard
+    this.io.emit('call:started', callData);
   }
 
   /**
@@ -337,6 +342,9 @@ If they want to leave a message for Nikhil, get the details and let them know yo
       status: 'completed',
       messageCount: this.conversationHistory.length
     });
+
+    // Unregister active call
+    unregisterActiveCall(this.callSid);
 
     // Emit to dashboard
     this.io.emit('call:ended', {
