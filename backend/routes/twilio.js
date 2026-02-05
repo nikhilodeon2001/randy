@@ -183,9 +183,13 @@ router.post('/fallback', (req, res) => {
  * Recording callback - Called when recording is available
  */
 router.post('/recording', async (req, res) => {
-  const { CallSid, RecordingUrl, RecordingSid, RecordingDuration } = req.body;
+  const { CallSid, RecordingUrl, RecordingSid, RecordingDuration, RecordingStatus } = req.body;
 
-  console.log(`🎙️ Recording available for ${CallSid}: ${RecordingUrl}`);
+  console.log(`🎙️ Recording webhook called for ${CallSid}`);
+  console.log(`   Status: ${RecordingStatus}`);
+  console.log(`   URL: ${RecordingUrl}`);
+  console.log(`   Duration: ${RecordingDuration}`);
+  console.log(`   Full request body:`, JSON.stringify(req.body, null, 2));
 
   try {
     const { Call } = require('../db/mongodb');
@@ -194,18 +198,24 @@ router.post('/recording', async (req, res) => {
     const recordingUrlWithExtension = `${RecordingUrl}.mp3`;
 
     // Update call with recording information using MongoDB
-    await Call.findOneAndUpdate(
+    const result = await Call.findOneAndUpdate(
       { callSid: CallSid },
       {
         recordingUrl: recordingUrlWithExtension,
         recordingSid: RecordingSid,
         recordingDuration: RecordingDuration
-      }
+      },
+      { new: true }
     );
 
-    console.log(`✅ Recording saved for call ${CallSid}: ${recordingUrlWithExtension}`);
+    if (result) {
+      console.log(`✅ Recording saved for call ${CallSid}: ${recordingUrlWithExtension}`);
+      console.log(`   Updated call record:`, result.callSid, result.recordingUrl);
+    } else {
+      console.error(`❌ Call ${CallSid} not found in database - cannot save recording`);
+    }
   } catch (error) {
-    console.error('Error saving recording:', error);
+    console.error('❌ Error saving recording:', error);
   }
 
   res.sendStatus(200);
