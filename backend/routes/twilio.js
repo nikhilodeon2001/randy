@@ -188,17 +188,19 @@ router.post('/recording', async (req, res) => {
   console.log(`🎙️ Recording available for ${CallSid}: ${RecordingUrl}`);
 
   try {
-    const db = require('../db');
+    const { Call } = require('../db/mongodb');
 
     // Append .mp3 to recording URL for proper playback
     const recordingUrlWithExtension = `${RecordingUrl}.mp3`;
 
-    // Update call with recording information
-    await db.pool.query(
-      `UPDATE calls
-       SET recording_url = $1, recording_sid = $2, recording_duration = $3
-       WHERE call_sid = $4`,
-      [recordingUrlWithExtension, RecordingSid, RecordingDuration, CallSid]
+    // Update call with recording information using MongoDB
+    await Call.findOneAndUpdate(
+      { callSid: CallSid },
+      {
+        recordingUrl: recordingUrlWithExtension,
+        recordingSid: RecordingSid,
+        recordingDuration: RecordingDuration
+      }
     );
 
     console.log(`✅ Recording saved for call ${CallSid}: ${recordingUrlWithExtension}`);
