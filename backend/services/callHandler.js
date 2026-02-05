@@ -153,6 +153,8 @@ INSTRUCTIONS:
 - Keep it very short and direct - just 1 sentence
 - Let them know Nikhil isn't available and they can leave a message
 - IMPORTANT: Vary the wording each time - don't repeat the same phrases
+- DO NOT mention "after the tone" or "after the beep" - there is no tone or beep
+- Just tell them to leave a message or say what they need
 - Generate ONE complete greeting only - do not number it or provide multiple options
 
 Example styles (pick ONE approach):
