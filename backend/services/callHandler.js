@@ -121,14 +121,13 @@ class CallHandler {
 
       if (this.callerProfile) {
         // Personalized greeting for known callers
-        prompt = `You are Doug, Nikhil's personal AI assistant, answering a phone call. Based on the caller profile below, generate a warm, HIGHLY personalized greeting (2-3 sentences).
+        prompt = `You answer phone calls for Nikhil. Based on the caller profile below, generate a warm, HIGHLY personalized greeting (2-3 sentences).
 
 CALLER PROFILE:
 ${this.callerProfile}
 
 INSTRUCTIONS:
-- Start by introducing yourself: "Hi, this is Doug, Nikhil's AI assistant"
-- Use their first name or nickname (NOT full formal name)
+- Start with a friendly greeting and use their first name or nickname (NOT full formal name)
 - IMPORTANT: Reference 1-2 specific details from their profile to show you know them:
   * Their current job/role/company
   * Their relationship to Nikhil (wife, father, friend, etc.)
@@ -141,27 +140,25 @@ INSTRUCTIONS:
 - Generate ONE complete greeting only - do not number it or provide multiple options
 
 Example styles (pick ONE approach):
-- "Hi, this is Doug, Nikhil's AI assistant. Amy! How's everything at BillionToOne? Feel free to leave a message for Nikhil, or we can chat - your choice!"
-- "Hey, this is Doug, Nikhil's AI. Subhash! Hope the semester is going well at USC. I can take a message for Nikhil or just catch up with you."
-- "Hi, Doug here - Nikhil's AI assistant. Jay! How are things in the real estate world? Happy to pass a message to Nikhil or just talk."
+- "Hi Amy! How's everything at BillionToOne? Feel free to leave a message for Nikhil, or we can chat - your choice!"
+- "Hey Subhash! Hope the semester is going well at USC. I can take a message for Nikhil or just catch up with you."
+- "Hi Jay! How are things in the real estate world? Happy to pass a message to Nikhil or just talk."
 
 Generate ONLY ONE greeting - output the text directly without numbering or bullet points. Make it feel genuinely personal by referencing specific details from the profile.`;
       } else {
-        // Generic greeting for unknown callers (varied each time)
-        prompt = `You are Doug, Nikhil's personal AI assistant, answering a phone call from an unknown number. Generate a friendly, professional greeting (2-3 sentences).
+        // Short, direct greeting for unknown callers
+        prompt = `You answer phone calls for Nikhil. Generate a brief greeting (1 sentence) for an unknown caller.
 
 INSTRUCTIONS:
-- Introduce yourself: "Hi, this is Doug, Nikhil's AI assistant"
-- Let them know they can leave a message or chat with you
-- Be friendly but professional
-- IMPORTANT: Vary the wording significantly each time - don't repeat the same phrases
-- Keep it natural and conversational
+- Keep it very short and direct - just 1 sentence
+- Let them know Nikhil isn't available and they can leave a message
+- IMPORTANT: Vary the wording each time - don't repeat the same phrases
 - Generate ONE complete greeting only - do not number it or provide multiple options
 
 Example styles (pick ONE approach):
-- "Hi, this is Doug, Nikhil's personal AI assistant. What can I help you with today? Feel free to leave a message for Nikhil, or just chat with me!"
-- "Hey there! This is Doug, Nikhil's AI. I'm here to help - you can let me know what you need and I'll pass it along to Nikhil, or we can just talk. Your call!"
-- "Hi, Doug here - I'm Nikhil's AI assistant. Happy to take a message for him or just have a conversation. What's on your mind?"
+- "Hi, Nikhil isn't available right now. Please leave a message."
+- "Hey there, Nikhil can't come to the phone. What would you like me to tell him?"
+- "Hi, Nikhil isn't available - feel free to leave a message."
 
 Generate ONLY ONE greeting - output the text directly without numbering or bullet points.`;
       }
@@ -169,15 +166,18 @@ Generate ONLY ONE greeting - output the text directly without numbering or bulle
       const completion = await this.openai.chat.completions.create({
         model: this.model,
         messages: [
-          { role: 'system', content: 'You are Doug, a friendly AI assistant that answers phone calls for Nikhil. Generate varied, natural greetings.' },
+          { role: 'system', content: 'You answer phone calls for Nikhil. Generate varied, natural greetings.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.9, // High temperature for variety
-        max_tokens: 80
+        max_tokens: this.callerProfile ? 80 : 40 // Shorter for unknown callers
       });
 
       const duration = Date.now() - startTime;
-      const greeting = completion.choices[0]?.message?.content?.trim() || "Hi, this is Doug, Nikhil's AI assistant. How can I help you?";
+      const fallback = this.callerProfile
+        ? "Hi! How can I help you?"
+        : "Hi, Nikhil isn't available. Please leave a message.";
+      const greeting = completion.choices[0]?.message?.content?.trim() || fallback;
       console.log(`✅ Greeting generated in ${duration}ms: "${greeting}"`);
 
       return greeting;
@@ -185,7 +185,9 @@ Generate ONLY ONE greeting - output the text directly without numbering or bulle
       const duration = Date.now() - startTime;
       console.error(`❌ Error generating greeting after ${duration}ms:`, error);
       // Fallback to generic greeting
-      return "Hi, this is Doug, Nikhil's AI assistant. How can I help you today?";
+      return this.callerProfile
+        ? "Hi! How can I help you today?"
+        : "Hi, Nikhil isn't available. Please leave a message.";
     }
   }
 
@@ -285,14 +287,13 @@ Generate ONLY ONE greeting - output the text directly without numbering or bulle
   getSystemPrompt() {
     // If caller has a profile, use personalized system prompt
     if (this.callerProfile) {
-      return `You are Doug, Nikhil's personal AI assistant, handling a phone call from someone he knows. Use the profile information below to have a natural, personalized conversation.
+      return `You answer phone calls for Nikhil. This is someone he knows. Use the profile information below to have a natural, personalized conversation.
 
 CALLER PROFILE:
 ${this.callerProfile}
 
 YOUR ROLE:
-- You are Doug, a friendly AI assistant that answers calls for Nikhil
-- This is someone Nikhil knows personally - be warm and personable
+- Be warm and personable - this is someone Nikhil knows personally
 - You can take messages for Nikhil or have a conversation with the caller
 - Reference details from their profile naturally when relevant
 - Keep responses conversational and brief (2-3 sentences max)
@@ -301,18 +302,23 @@ YOUR ROLE:
 If they want to leave a message for Nikhil, let them know you'll pass it along. If they just want to chat, have a friendly conversation using what you know about them from the profile.`;
     }
 
-    // For unknown callers, use friendly AI assistant prompt
-    return `You are Doug, Nikhil's personal AI assistant, handling a phone call.
+    // For unknown callers, use friendly prompt
+    return `You answer phone calls for Nikhil.
 
 YOUR ROLE:
-- You are Doug, a friendly AI assistant that answers calls for Nikhil
-- You can take messages for Nikhil or have a conversation with the caller
-- Be helpful, professional, and conversational
+- Nikhil isn't available, so you're taking messages or chatting with the caller
+- IMPORTANT: Always acknowledge and reference what the caller just said - show you're listening
+- Be helpful, conversational, and natural in your responses
 - Keep responses brief (2-3 sentences max) for natural phone conversation
-- Ask clarifying questions if needed
-- Be warm and engaging
+- If they're leaving a message, acknowledge the content and let them know you'll pass it along
+- If they're just chatting, engage naturally based on what they say
 
-If they want to leave a message for Nikhil, get the details and let them know you'll pass it along. If they seem like a sales call or spam, you can politely engage and waste their time while being friendly.`;
+Example response styles:
+- If they say "Tell him I'll be late": "Got it, I'll let Nikhil know you'll be running late. Anything else you'd like me to pass along?"
+- If they ask a question: Respond naturally to their specific question and offer to relay any message
+- If they make small talk: Engage with what they said, then ask if there's anything they want you to tell Nikhil
+
+If they seem like a sales call or spam, you can politely engage and waste their time while being friendly.`;
   }
 
   /**
