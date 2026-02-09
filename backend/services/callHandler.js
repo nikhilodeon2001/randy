@@ -34,7 +34,15 @@ class CallHandler {
     this.model = process.env.OPENAI_MODEL || 'gpt-3.5-turbo'; // Fastest model for minimal latency
 
     // Set voice for this call to the current default
-    setVoiceForCall(this.callSid, getDefaultVoice());
+    // If default is a random voice, resolve it once now (per-call randomization)
+    const defaultVoice = getDefaultVoice();
+    if (defaultVoice.startsWith('random-')) {
+      const resolvedVoice = ttsService.selectRandomVoice(defaultVoice);
+      setVoiceForCall(this.callSid, resolvedVoice);
+      console.log(`🎲 Default random voice resolved for call ${this.callSid}: ${resolvedVoice}`);
+    } else {
+      setVoiceForCall(this.callSid, defaultVoice);
+    }
   }
 
   /**
