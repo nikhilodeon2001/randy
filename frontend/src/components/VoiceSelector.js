@@ -9,6 +9,8 @@ function VoiceSelector({ callSid, onVoiceChange }) {
   const [selectedVoiceId, setSelectedVoiceId] = useState(38); // Default to Orion (ID 38)
   const [isLoading, setIsLoading] = useState(true);
   const [isChanging, setIsChanging] = useState(false);
+  const [randomPerCall, setRandomPerCall] = useState(true); // Default: random once per call
+  const [isRandomVoice, setIsRandomVoice] = useState(false); // Track if selected voice is random
 
   // Fetch available voice models on mount
   useEffect(() => {
@@ -86,7 +88,8 @@ function VoiceSelector({ callSid, onVoiceChange }) {
         },
         body: JSON.stringify({
           callSid,
-          voiceId: selectedVoiceId
+          voiceId: selectedVoiceId,
+          randomPerCall: randomPerCall // Include random mode preference
         })
       });
 
@@ -108,6 +111,14 @@ function VoiceSelector({ callSid, onVoiceChange }) {
     } finally {
       setIsChanging(false);
     }
+  };
+
+  // Update isRandomVoice when selected voice changes
+  const handleVoiceSelection = (voiceId) => {
+    const parsedId = parseInt(voiceId);
+    setSelectedVoiceId(parsedId);
+    // Check if this is a random voice (IDs 100-108)
+    setIsRandomVoice(parsedId >= 100 && parsedId <= 108);
   };
 
   if (isLoading) {
@@ -141,7 +152,7 @@ function VoiceSelector({ callSid, onVoiceChange }) {
           <select
             id="voice-select"
             value={selectedVoiceId}
-            onChange={(e) => setSelectedVoiceId(parseInt(e.target.value))}
+            onChange={(e) => handleVoiceSelection(e.target.value)}
             disabled={isChanging}
             className="voice-dropdown"
           >
@@ -156,6 +167,25 @@ function VoiceSelector({ callSid, onVoiceChange }) {
             ))}
           </select>
         </div>
+
+        {isRandomVoice && callSid && (
+          <div className="random-mode-container">
+            <label className="random-mode-label">
+              <input
+                type="checkbox"
+                checked={randomPerCall}
+                onChange={(e) => setRandomPerCall(e.target.checked)}
+                disabled={isChanging}
+              />
+              <span>Lock random voice for entire call</span>
+            </label>
+            <p className="random-mode-hint">
+              {randomPerCall
+                ? '🔒 Voice will be randomly selected once and kept for the whole call'
+                : '🎲 Voice will change randomly with each AI response'}
+            </p>
+          </div>
+        )}
 
         <button
           className="apply-btn"

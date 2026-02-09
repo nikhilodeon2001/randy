@@ -40,13 +40,20 @@ router.post('/voice', async (req, res) => {
       // 1 second pause
       twiml.pause({ length: 1 });
 
-      // Generate and play beep
-      const beepResult = await callHandler.generateAudio('BEEEEEEEEEEEEEP');
+      // Generate and play beep (extra long for comedic effect)
+      const beepResult = await callHandler.generateAudio('Beeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeep');
       const beepUrl = `${req.protocol}://${req.get('host')}/audio/${beepResult.filename}`;
       twiml.play(beepUrl);
 
-      // After beep, just hang up - recording will capture everything
-      twiml.hangup();
+      // Record voicemail message
+      twiml.record({
+        maxLength: 120, // 2 minutes max
+        timeout: 5, // End after 5 seconds of silence
+        transcribe: true,
+        transcribeCallback: `${req.protocol}://${req.get('host')}/twilio/voicemail`,
+        action: `${req.protocol}://${req.get('host')}/twilio/voicemail`,
+        method: 'POST'
+      });
     } else {
       // Interactive AI mode for known callers
       // Use <Gather> to collect caller's speech
@@ -237,6 +244,52 @@ router.post('/recording', async (req, res) => {
   }
 
   res.sendStatus(200);
+});
+
+/**
+ * Voicemail callback - Called when voicemail recording is complete
+ */
+router.post('/voicemail', async (req, res) => {
+  const { CallSid, RecordingUrl, RecordingSid, RecordingDuration, TranscriptionText } = req.body;
+
+  console.log(`📬 Voicemail recorded for ${CallSid}`);
+  console.log(`   URL: ${RecordingUrl}`);
+  console.log(`   Duration: ${RecordingDuration}s`);
+  console.log(`   Transcription: ${TranscriptionText || 'Pending...'}`);
+
+  try {
+    const { Call } = require('../db/mongodb');
+
+    // Append .mp3 to recording URL for proper playback
+    const recordingUrlWithExtension = `${RecordingUrl}.mp3`;
+
+    // Update call with voicemail information
+    const result = await Call.findOneAndUpdate(
+      { callSid: CallSid },
+      {
+        recordingUrl: recordingUrlWithExtension,
+        recordingSid: RecordingSid,
+        recordingDuration: RecordingDuration,
+        voicemailTranscription: TranscriptionText || null
+      },
+      { new: true }
+    );
+
+    if (result) {
+      console.log(`✅ Voicemail saved for call ${CallSid}`);
+    } else {
+      console.error(`❌ Call ${CallSid} not found in database`);
+    }
+  } catch (error) {
+    console.error('❌ Error saving voicemail:', error);
+  }
+
+  // Send TwiML to end the call
+  const twiml = new VoiceResponse();
+  twiml.hangup();
+
+  res.type('text/xml');
+  res.send(twiml.toString());
 });
 
 module.exports = router;

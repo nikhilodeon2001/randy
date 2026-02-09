@@ -58,9 +58,10 @@ router.get('/current/:callSid', (req, res) => {
 /**
  * POST /api/voice/change
  * Change voice for an active call
+ * randomPerCall: if true and voice is random, resolve once per call; if false, resolve per TTS generation
  */
 router.post('/change', async (req, res) => {
-  const { callSid, voiceId } = req.body;
+  const { callSid, voiceId, randomPerCall = true } = req.body;
 
   if (!callSid || !voiceId) {
     return res.status(400).json({
@@ -77,17 +78,40 @@ router.post('/change', async (req, res) => {
     });
   }
 
+  // Determine what voice to store
+  let storedVoiceModel;
+  let displayDescription = voiceInfo.description;
+
+  if (voiceInfo.isRandom && randomPerCall) {
+    // Random per call: resolve once now and store the resolved voice
+    storedVoiceModel = ttsService.selectRandomVoice(voiceInfo.model);
+    const allVoices = ttsService.getVoiceModels();
+    const actualVoice = Object.values(allVoices).find(v => v.model === storedVoiceModel);
+    if (actualVoice) {
+      displayDescription = `${voiceInfo.description} → ${actualVoice.description}`;
+    }
+    console.log(`🎲 Random voice resolved for call ${callSid}: ${storedVoiceModel} (locked for call)`);
+  } else if (voiceInfo.isRandom && !randomPerCall) {
+    // Random per generation: store the random- model so it gets resolved each time
+    storedVoiceModel = voiceInfo.model;
+    displayDescription = `${voiceInfo.description} (new each response)`;
+    console.log(`🎲 Random voice set for call ${callSid}: will change each response`);
+  } else {
+    // Regular voice
+    storedVoiceModel = voiceInfo.model;
+  }
+
   // Update active call voice
-  activeCallVoices.set(callSid, voiceInfo.model);
-  console.log(`🔄 Voice changed for call ${callSid} to: ${voiceInfo.model} (${voiceInfo.description})`);
+  activeCallVoices.set(callSid, storedVoiceModel);
+  console.log(`🔄 Voice changed for call ${callSid} to: ${storedVoiceModel} (${displayDescription})`);
 
   // Emit voice change event via WebSocket
   const io = req.app.get('io');
   if (io) {
     io.emit('voice:changed', {
       callSid,
-      voiceModel: voiceInfo.model,
-      description: voiceInfo.description
+      voiceModel: storedVoiceModel,
+      description: displayDescription
     });
   }
 
@@ -96,7 +120,7 @@ router.post('/change', async (req, res) => {
     const db = require('../db');
     await db.pool.query(
       'UPDATE calls SET current_voice_model = $1 WHERE call_sid = $2',
-      [voiceInfo.model, callSid]
+      [storedVoiceModel, callSid]
     );
   } catch (error) {
     console.error('Error updating voice in database:', error);
@@ -105,8 +129,10 @@ router.post('/change', async (req, res) => {
   res.json({
     success: true,
     callSid,
-    voiceModel: voiceInfo.model,
-    description: voiceInfo.description
+    voiceModel: storedVoiceModel,
+    description: displayDescription,
+    isRandom: voiceInfo.isRandom,
+    randomPerCall
   });
 });
 
@@ -154,7 +180,8 @@ router.post('/default', async (req, res) => {
     });
   }
 
-  // Update default voice in memory
+  // Store the voice model (keep random- prefix if it's a random voice)
+  // This allows random selection to happen per-call or per-generation depending on settings
   defaultVoiceModel = voiceInfo.model;
 
   // Persist to database
@@ -164,7 +191,8 @@ router.post('/default', async (req, res) => {
   res.json({
     success: true,
     voiceModel: voiceInfo.model,
-    description: voiceInfo.description
+    description: voiceInfo.description,
+    isRandom: voiceInfo.isRandom || false
   });
 });
 

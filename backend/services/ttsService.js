@@ -68,11 +68,23 @@ const VOICE_MODEL_MAP = {
   51: { model: "aura-angus-en", description: "Angus (Aura-1) - Gruff masculine", gender: "male", auraVersion: 1 },
   52: { model: "aura-orpheus-en", description: "Orpheus (Aura-1) - Masculine", gender: "male", auraVersion: 1 },
   53: { model: "aura-helios-en", description: "Helios (Aura-1) - Masculine", gender: "male", auraVersion: 1 },
-  54: { model: "aura-zeus-en", description: "Zeus (Aura-1) - Powerful masculine", gender: "male", auraVersion: 1 }
+  54: { model: "aura-zeus-en", description: "Zeus (Aura-1) - Powerful masculine", gender: "male", auraVersion: 1 },
+
+  // Random voice selection options (special IDs)
+  100: { model: "random-aura1", description: "🎲 Random Aura-1 Voice", gender: "any", auraVersion: 1, isRandom: true },
+  101: { model: "random-aura1-male", description: "🎲 Random Aura-1 Voice (Male)", gender: "male", auraVersion: 1, isRandom: true },
+  102: { model: "random-aura1-female", description: "🎲 Random Aura-1 Voice (Female)", gender: "female", auraVersion: 1, isRandom: true },
+  103: { model: "random-aura2", description: "🎲 Random Aura-2 Voice", gender: "any", auraVersion: 2, isRandom: true },
+  104: { model: "random-aura2-male", description: "🎲 Random Aura-2 Voice (Male)", gender: "male", auraVersion: 2, isRandom: true },
+  105: { model: "random-aura2-female", description: "🎲 Random Aura-2 Voice (Female)", gender: "female", auraVersion: 2, isRandom: true },
+  106: { model: "random-any", description: "🎲 Random Voice", gender: "any", auraVersion: null, isRandom: true },
+  107: { model: "random-male", description: "🎲 Random Voice (Male)", gender: "male", auraVersion: null, isRandom: true },
+  108: { model: "random-female", description: "🎲 Random Voice (Female)", gender: "female", auraVersion: null, isRandom: true }
 };
 
 // Grouped voices for UI display
 const VOICE_GROUPS = {
+  'Random Voices': [100, 101, 102, 103, 104, 105, 106, 107, 108],
   'Aura-2 Female': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26],
   'Aura-2 Male': [27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42],
   'Aura-1 Female': [43, 44, 45, 46, 47],
@@ -91,11 +103,76 @@ class TTSService {
   }
 
   /**
+   * Select a random voice based on criteria
+   */
+  selectRandomVoice(model) {
+    // Check if this is a random voice model
+    if (!model.startsWith('random-')) {
+      return model;
+    }
+
+    // Get all voice IDs (excluding random options)
+    let availableVoiceIds = Object.keys(VOICE_MODEL_MAP)
+      .map(id => parseInt(id))
+      .filter(id => id >= 1 && id <= 54); // Only actual voices, not random options
+
+    // Filter based on criteria
+    if (model === 'random-aura1') {
+      // Aura-1 voices (IDs 43-54)
+      availableVoiceIds = availableVoiceIds.filter(id => id >= 43 && id <= 54);
+    } else if (model === 'random-aura1-male') {
+      // Aura-1 male voices (IDs 48-54)
+      availableVoiceIds = availableVoiceIds.filter(id =>
+        id >= 43 && id <= 54 && VOICE_MODEL_MAP[id].gender === 'male'
+      );
+    } else if (model === 'random-aura1-female') {
+      // Aura-1 female voices (IDs 43-47)
+      availableVoiceIds = availableVoiceIds.filter(id =>
+        id >= 43 && id <= 54 && VOICE_MODEL_MAP[id].gender === 'female'
+      );
+    } else if (model === 'random-aura2') {
+      // Aura-2 voices (IDs 1-42)
+      availableVoiceIds = availableVoiceIds.filter(id => id >= 1 && id <= 42);
+    } else if (model === 'random-aura2-male') {
+      // Aura-2 male voices (IDs 27-42)
+      availableVoiceIds = availableVoiceIds.filter(id =>
+        id >= 1 && id <= 42 && VOICE_MODEL_MAP[id].gender === 'male'
+      );
+    } else if (model === 'random-aura2-female') {
+      // Aura-2 female voices (IDs 1-26)
+      availableVoiceIds = availableVoiceIds.filter(id =>
+        id >= 1 && id <= 42 && VOICE_MODEL_MAP[id].gender === 'female'
+      );
+    } else if (model === 'random-male') {
+      // All male voices
+      availableVoiceIds = availableVoiceIds.filter(id =>
+        VOICE_MODEL_MAP[id].gender === 'male'
+      );
+    } else if (model === 'random-female') {
+      // All female voices
+      availableVoiceIds = availableVoiceIds.filter(id =>
+        VOICE_MODEL_MAP[id].gender === 'female'
+      );
+    }
+    // 'random-any' uses all available voices (no filter needed)
+
+    // Pick a random voice from the filtered list
+    const randomId = availableVoiceIds[Math.floor(Math.random() * availableVoiceIds.length)];
+    const selectedVoice = VOICE_MODEL_MAP[randomId];
+
+    console.log(`🎲 Random voice selected: ${selectedVoice.description} (${selectedVoice.model})`);
+    return selectedVoice.model;
+  }
+
+  /**
    * Convert text to speech using Deepgram
    * Based on Discord bot's text_to_speech function
    */
   async generateSpeech(text, model = "aura-2-thalia-en", callSid = null) {
     try {
+      // If this is a random voice model, select an actual voice
+      const actualModel = this.selectRandomVoice(model);
+
       // Generate filename
       const timestamp = Date.now();
       const filename = callSid
@@ -103,12 +180,12 @@ class TTSService {
         : `audio_${timestamp}.mp3`;
       const filepath = path.join(this.audioDir, filename);
 
-      console.log(`Generating speech with model: ${model}`);
+      console.log(`Generating speech with model: ${actualModel}`);
 
       const response = await this.deepgram.speak.request(
         { text },
         {
-          model: model
+          model: actualModel
         }
       );
 
@@ -122,14 +199,14 @@ class TTSService {
       const buffer = await this.getAudioBuffer(stream);
       fs.writeFileSync(filepath, buffer);
 
-      console.log(`Audio saved to: ${filepath} using model: ${model}`);
-      return { filepath, filename, model };
+      console.log(`Audio saved to: ${filepath} using model: ${actualModel}`);
+      return { filepath, filename, model: actualModel };
 
     } catch (error) {
       console.error(`Error with model ${model}:`, error);
 
       // Fallback to default model (Thalia)
-      if (model !== "aura-2-thalia-en") {
+      if (model !== "aura-2-thalia-en" && !model.startsWith('random-')) {
         console.log('Falling back to default model: aura-2-thalia-en');
         return this.generateSpeech(text, "aura-2-thalia-en", callSid);
       }
