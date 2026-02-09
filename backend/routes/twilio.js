@@ -52,7 +52,8 @@ router.post('/voice', async (req, res) => {
         transcribe: true,
         transcribeCallback: `${req.protocol}://${req.get('host')}/twilio/voicemail`,
         action: `${req.protocol}://${req.get('host')}/twilio/voicemail`,
-        method: 'POST'
+        method: 'POST',
+        playBeep: false // Don't play Twilio's default beep - we have our own custom beep
       });
     } else {
       // Interactive AI mode for known callers
