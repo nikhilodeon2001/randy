@@ -168,7 +168,7 @@ function VoiceSelector({ callSid, onVoiceChange }) {
           </select>
         </div>
 
-        {isRandomVoice && callSid && (
+        {isRandomVoice && (
           <div className="random-mode-container">
             <label className="random-mode-label">
               <input
@@ -177,12 +177,16 @@ function VoiceSelector({ callSid, onVoiceChange }) {
                 onChange={(e) => setRandomPerCall(e.target.checked)}
                 disabled={isChanging}
               />
-              <span>Lock random voice for entire call</span>
+              <span>{callSid ? 'Lock random voice for entire call' : 'Lock random voice for each call'}</span>
             </label>
             <p className="random-mode-hint">
               {randomPerCall
-                ? '🔒 Voice will be randomly selected once and kept for the whole call'
-                : '🎲 Voice will change randomly with each AI response'}
+                ? callSid
+                  ? '🔒 Voice will be randomly selected once and kept for the whole call'
+                  : '🔒 Voice will be randomly selected once per call and kept throughout'
+                : callSid
+                  ? '🎲 Voice will change randomly with each AI response'
+                  : '🎲 Voice will change randomly with each AI response (when used)'}
             </p>
           </div>
         )}
