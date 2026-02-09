@@ -32,22 +32,40 @@ router.post('/voice', async (req, res) => {
     const audioResult = await callHandler.generateAudio(greeting);
     const audioUrl = `${req.protocol}://${req.get('host')}/audio/${audioResult.filename}`;
 
-    // Use <Gather> to collect caller's speech
-    // Play audio INSIDE gather so Twilio listens during and after the greeting
-    const gather = twiml.gather({
-      input: 'speech',
-      action: '/twilio/gather',
-      method: 'POST',
-      speechTimeout: '1',  // 1 second silence after greeting
-      speechModel: 'phone_call',
-      enhanced: true
-    });
+    // Check if this is voicemail-only mode (unknown caller)
+    if (callHandler.isVoicemailOnly) {
+      // Voicemail-only flow: greeting -> pause -> beep -> hangup
+      twiml.play(audioUrl);
 
-    // Play Deepgram-generated audio inside the gather
-    gather.play(audioUrl);
+      // 1 second pause
+      twiml.pause({ length: 1 });
 
-    // Redirect back to gather more input
-    twiml.redirect('/twilio/gather');
+      // Generate and play beep
+      const beepResult = await callHandler.generateAudio('BEEEEEEEEEEEEEP');
+      const beepUrl = `${req.protocol}://${req.get('host')}/audio/${beepResult.filename}`;
+      twiml.play(beepUrl);
+
+      // After beep, just hang up - recording will capture everything
+      twiml.hangup();
+    } else {
+      // Interactive AI mode for known callers
+      // Use <Gather> to collect caller's speech
+      // Play audio INSIDE gather so Twilio listens during and after the greeting
+      const gather = twiml.gather({
+        input: 'speech',
+        action: '/twilio/gather',
+        method: 'POST',
+        speechTimeout: '1',  // 1 second silence after greeting
+        speechModel: 'phone_call',
+        enhanced: true
+      });
+
+      // Play Deepgram-generated audio inside the gather
+      gather.play(audioUrl);
+
+      // Redirect back to gather more input
+      twiml.redirect('/twilio/gather');
+    }
 
   } catch (error) {
     console.error('Error handling incoming call:', error);

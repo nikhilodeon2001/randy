@@ -16,6 +16,7 @@ class CallHandler {
     this.startTime = new Date();
     this.recordingStarted = false; // Track if recording has been started
     this.callerProfile = null; // Will be loaded in start()
+    this.isVoicemailOnly = false; // Will be set in start() based on profile
 
     // Initialize OpenAI client
     this.openai = new OpenAI({
@@ -47,8 +48,10 @@ class CallHandler {
 
     if (this.callerProfile) {
       console.log(`📋 Using personalized profile for ${this.fromNumber}`);
+      this.isVoicemailOnly = false;
     } else {
-      console.log(`👤 No profile found for ${this.fromNumber}, using default personality: ${this.personality}`);
+      console.log(`👤 No profile found for ${this.fromNumber} - voicemail-only mode`);
+      this.isVoicemailOnly = true;
     }
 
     // Save call to database
@@ -110,18 +113,22 @@ class CallHandler {
   }
 
   /**
-   * Generate greeting using LLM (personalized for known callers, varied for unknown)
+   * Generate greeting using LLM (personalized for known callers, simple voicemail for unknown)
    */
   async generateGreeting() {
     const startTime = Date.now();
+
+    // For unknown callers, return simple voicemail message (no LLM needed)
+    if (!this.callerProfile) {
+      console.log(`📞 Unknown caller - using simple voicemail greeting`);
+      return "Please leave a message after the beep.";
+    }
+
+    // For known callers, generate personalized greeting
     try {
       console.log(`🎨 Generating greeting for ${this.fromNumber}...`);
 
-      let prompt;
-
-      if (this.callerProfile) {
-        // Personalized greeting for known callers
-        prompt = `You answer phone calls for Nikhil. Based on the caller profile below, generate a warm, HIGHLY personalized greeting (2-3 sentences).
+      const prompt = `You answer phone calls for Nikhil. Based on the caller profile below, generate a warm, HIGHLY personalized greeting (2-3 sentences).
 
 CALLER PROFILE:
 ${this.callerProfile}
@@ -145,25 +152,6 @@ Example styles (pick ONE approach):
 - "Hi Jay! How are things in the real estate world? Happy to pass a message to Nikhil or just talk."
 
 Generate ONLY ONE greeting - output the text directly without numbering or bullet points. Make it feel genuinely personal by referencing specific details from the profile.`;
-      } else {
-        // Short, direct greeting for unknown callers
-        prompt = `You answer phone calls for Nikhil. Generate a brief greeting (1 sentence) for an unknown caller.
-
-INSTRUCTIONS:
-- Keep it very short and direct - just 1 sentence
-- Let them know Nikhil isn't available and they can leave a message
-- IMPORTANT: Vary the wording each time - don't repeat the same phrases
-- DO NOT mention "after the tone" or "after the beep" - there is no tone or beep
-- Just tell them to leave a message or say what they need
-- Generate ONE complete greeting only - do not number it or provide multiple options
-
-Example styles (pick ONE approach):
-- "Hi, Nikhil isn't available right now. Please leave a message."
-- "Hey there, Nikhil can't come to the phone. What would you like me to tell him?"
-- "Hi, Nikhil isn't available - feel free to leave a message."
-
-Generate ONLY ONE greeting - output the text directly without numbering or bullet points.`;
-      }
 
       const completion = await this.openai.chat.completions.create({
         model: this.model,
@@ -171,25 +159,19 @@ Generate ONLY ONE greeting - output the text directly without numbering or bulle
           { role: 'system', content: 'You answer phone calls for Nikhil. Generate varied, natural greetings.' },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.9, // High temperature for variety
-        max_tokens: this.callerProfile ? 80 : 40 // Shorter for unknown callers
+        temperature: 0.9,
+        max_tokens: 80
       });
 
       const duration = Date.now() - startTime;
-      const fallback = this.callerProfile
-        ? "Hi! How can I help you?"
-        : "Hi, Nikhil isn't available. Please leave a message.";
-      const greeting = completion.choices[0]?.message?.content?.trim() || fallback;
+      const greeting = completion.choices[0]?.message?.content?.trim() || "Hi! How can I help you?";
       console.log(`✅ Greeting generated in ${duration}ms: "${greeting}"`);
 
       return greeting;
     } catch (error) {
       const duration = Date.now() - startTime;
       console.error(`❌ Error generating greeting after ${duration}ms:`, error);
-      // Fallback to generic greeting
-      return this.callerProfile
-        ? "Hi! How can I help you today?"
-        : "Hi, Nikhil isn't available. Please leave a message.";
+      return "Hi! How can I help you today?";
     }
   }
 
