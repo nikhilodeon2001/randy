@@ -40,8 +40,8 @@ router.post('/voice', async (req, res) => {
       // 1 second pause
       twiml.pause({ length: 1 });
 
-      // Generate and play beep (comedic TTS beep)
-      const beepResult = await callHandler.generateAudio('Beeeeeeep');
+      // Generate and play beep (TTS beep)
+      const beepResult = await callHandler.generateAudio('Beep');
       const beepUrl = `${req.protocol}://${req.get('host')}/audio/${beepResult.filename}`;
       twiml.play(beepUrl);
 
