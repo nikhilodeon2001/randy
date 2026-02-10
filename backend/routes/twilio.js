@@ -40,10 +40,13 @@ router.post('/voice', async (req, res) => {
       // 1 second pause
       twiml.pause({ length: 1 });
 
-      // Generate and play beep (extra long for comedic effect)
-      const beepResult = await callHandler.generateAudio('Beeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeep');
+      // Generate and play beep (comedic TTS beep)
+      const beepResult = await callHandler.generateAudio('Beeeeeeep');
       const beepUrl = `${req.protocol}://${req.get('host')}/audio/${beepResult.filename}`;
       twiml.play(beepUrl);
+
+      // Brief pause after beep to prevent cutoff
+      twiml.pause({ length: 0.5 });
 
       // Record voicemail message
       twiml.record({
