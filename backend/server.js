@@ -66,7 +66,9 @@ app.get('/health', (req, res) => {
 });
 
 // API Routes
-app.use('/twilio', twilioRoutes);
+// Validate that webhook requests to /twilio/* actually come from Twilio.
+// Disabled locally when TWILIO_AUTH_TOKEN is not set.
+app.use('/twilio', twilio.webhook({ validate: !!process.env.TWILIO_AUTH_TOKEN }), twilioRoutes);
 app.use('/api/calls', callsRoutes);
 app.use('/api/voice', voiceRoutes);
 app.use('/api/voice-preview', voicePreviewRoutes);
