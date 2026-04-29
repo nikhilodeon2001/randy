@@ -20,7 +20,7 @@ Randy is deployed on Heroku and connects to your Twilio phone number. When spam 
 ```
 Incoming Call → Twilio → Heroku Web App → OpenAI GPT-4
                               ↓
-                        PostgreSQL DB
+                          MongoDB
                               ↓
                         WebSocket → Browser Dashboard
 ```
@@ -38,7 +38,7 @@ webapp/
 │   │   ├── callHandler.js # AI conversation handler
 │   │   └── websocket.js   # Real-time updates
 │   └── db/                 # Database layer
-│       └── index.js        # PostgreSQL queries
+│       └── index.js        # MongoDB queries
 │
 ├── frontend/                # React dashboard
 │   ├── src/
@@ -58,7 +58,7 @@ webapp/
 ### Prerequisites
 
 - Node.js 18+
-- PostgreSQL (or Heroku Postgres)
+- MongoDB (or MongoDB Atlas)
 - Twilio account with phone number
 - OpenAI API key
 - Heroku account (for deployment)
@@ -78,13 +78,12 @@ webapp/
    # Edit .env with your API keys
    ```
 
-3. **Start PostgreSQL** (if running locally):
+3. **Set up MongoDB** (if running locally):
    ```bash
    # macOS with Homebrew
-   brew services start postgresql
+   brew services start mongodb-community
 
-   # Create database
-   createdb randy
+   # Or use a free MongoDB Atlas cluster and set MONGODB_URI in your .env
    ```
 
 4. **Run development servers**:
@@ -113,7 +112,7 @@ Quick version:
 ```bash
 cd webapp
 heroku create your-app-name
-heroku addons:create heroku-postgresql:essential-0
+heroku config:set MONGODB_URI=your_mongodb_atlas_uri
 heroku config:set OPENAI_API_KEY=your_key
 heroku config:set TWILIO_ACCOUNT_SID=your_sid
 git push heroku main
@@ -130,7 +129,7 @@ OPENAI_API_KEY=sk-...
 TWILIO_ACCOUNT_SID=AC...
 TWILIO_AUTH_TOKEN=...
 TWILIO_PHONE_NUMBER=+1...
-DATABASE_URL=postgresql://...
+MONGODB_URI=mongodb+srv://...
 AI_PERSONALITY=confused_grandparent
 ```
 
@@ -197,14 +196,14 @@ heroku logs --tail | grep ERROR
 
 ### Database
 ```bash
-# Connect to database
-heroku pg:psql
+# Connect via mongosh using your MONGODB_URI
+mongosh "$MONGODB_URI"
 
 # View calls
-SELECT * FROM calls ORDER BY start_time DESC LIMIT 10;
+db.calls.find().sort({ startTime: -1 }).limit(10)
 
 # View transcripts
-SELECT * FROM transcripts;
+db.transcripts.find()
 ```
 
 ## Costs
@@ -229,11 +228,11 @@ SELECT * FROM transcripts;
 
 ### "Cannot connect to database"
 ```bash
-# Verify DATABASE_URL is set
-heroku config:get DATABASE_URL
+# Verify MONGODB_URI is set
+heroku config:get MONGODB_URI
 
-# Check database status
-heroku pg:info
+# Check app logs for connection errors
+heroku logs --tail | grep mongo
 ```
 
 ### "Twilio webhook timeout"
