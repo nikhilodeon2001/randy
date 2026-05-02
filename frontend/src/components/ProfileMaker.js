@@ -13,8 +13,11 @@ function ProfileMaker() {
   const [sourceType, setSourceType] = useState('text');
   const [source, setSource] = useState('');
 
-  // View profile modal
+  // View/edit profile modal
   const [viewingProfile, setViewingProfile] = useState(null);
+  const [editedContent, setEditedContent] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
     fetchProfiles();
@@ -118,9 +121,33 @@ function ProfileMaker() {
       }
 
       setViewingProfile(data);
+      setEditedContent(data.profileContent);
+      setSaveSuccess(false);
     } catch (err) {
       console.error('Error loading profile:', err);
       setError(err.message);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      setSaving(true);
+      setSaveSuccess(false);
+      const response = await fetch(`/api/profiles/${encodeURIComponent(viewingProfile.phoneNumber)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileContent: editedContent })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to save profile');
+      setViewingProfile(data.profile);
+      setEditedContent(data.profile.profileContent);
+      setSaveSuccess(true);
+      fetchProfiles();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -275,7 +302,7 @@ function ProfileMaker() {
                       onClick={() => handleViewProfile(profile.phoneNumber)}
                       className="action-btn view-btn"
                     >
-                      👁️ View
+                      ✏️ Edit
                     </button>
                     <button
                       onClick={() => handleDelete(profile.phoneNumber)}
@@ -291,16 +318,27 @@ function ProfileMaker() {
         )}
       </div>
 
-      {/* View Profile Modal */}
+      {/* View/Edit Profile Modal */}
       {viewingProfile && (
-        <div className="modal-overlay" onClick={() => setViewingProfile(null)}>
+        <div className="modal-overlay" onClick={() => { setViewingProfile(null); setSaveSuccess(false); }}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>{formatPhoneNumber(viewingProfile.phoneNumber)}</h3>
-              <button onClick={() => setViewingProfile(null)} className="modal-close">×</button>
+              <button onClick={() => { setViewingProfile(null); setSaveSuccess(false); }} className="modal-close">×</button>
             </div>
             <div className="modal-body">
-              <pre className="profile-content">{viewingProfile.profileContent}</pre>
+              <textarea
+                className="profile-content-edit"
+                value={editedContent}
+                onChange={(e) => setEditedContent(e.target.value)}
+                rows={15}
+              />
+              <div className="modal-save-row">
+                <button onClick={handleSaveProfile} className="save-btn" disabled={saving}>
+                  {saving ? '⏳ Saving...' : '💾 Save Changes'}
+                </button>
+                {saveSuccess && <span className="save-success">✅ Saved!</span>}
+              </div>
               <div className="profile-metadata">
                 <div className="metadata-item">
                   <strong>Source:</strong> {viewingProfile.sourceType}
