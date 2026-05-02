@@ -87,6 +87,14 @@ router.post('/voice', async (req, res) => {
 
   res.type('text/xml');
   res.send(twiml.toString());
+
+  // Start recording after TwiML response is sent — REST API recording plays no beep
+  setTimeout(async () => {
+    const callHandler = activeCallHandlers.get(CallSid);
+    if (callHandler && !callHandler.isVoicemailOnly) {
+      await callHandler.startRecording();
+    }
+  }, 500);
 });
 
 /**
