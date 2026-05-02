@@ -60,6 +60,14 @@ router.post('/voice', async (req, res) => {
       });
     } else {
       // Interactive AI mode for known callers
+
+      // Start recording silently — <Start><Record> does not play a beep (unlike recordings.create() REST API)
+      const start = twiml.start();
+      start.record({
+        recordingStatusCallback: `${req.protocol}://${req.get('host')}/twilio/recording`,
+        recordingStatusCallbackMethod: 'POST'
+      });
+
       // Use <Gather> to collect caller's speech
       // Play audio INSIDE gather so Twilio listens during and after the greeting
       const gather = twiml.gather({
@@ -86,15 +94,6 @@ router.post('/voice', async (req, res) => {
 
   res.type('text/xml');
   res.send(twiml.toString());
-
-  // Start recording after a brief delay to ensure call is answered
-  // Don't await - let it happen async
-  setTimeout(async () => {
-    const callHandler = activeCallHandlers.get(CallSid);
-    if (callHandler) {
-      await callHandler.startRecording();
-    }
-  }, 500); // 500ms delay to ensure call leg is established
 });
 
 /**
