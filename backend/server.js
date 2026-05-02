@@ -22,6 +22,9 @@ const db = require('./db');
 const app = express();
 const server = http.createServer(app);
 
+// Trust Heroku's reverse proxy so req.protocol is 'https' — required for Twilio webhook signature validation
+app.set('trust proxy', 1);
+
 // Initialize Socket.IO
 const io = socketIO(server, {
   cors: {
