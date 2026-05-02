@@ -71,7 +71,7 @@ const ALL_VOICES = [
   { id: 54, model: "aura-zeus-en", description: "Zeus (Aura-1) - Powerful masculine", gender: "male", auraVersion: 1 }
 ];
 
-const PREVIEW_TEXT = "Hi, this is Doug, Nikhil's AI assistant. How can I help you today?";
+const PREVIEW_TEXT = "Hi, this is Randy, Nikhil's AI assistant. How can I help you today?";
 
 /**
  * GET /api/voice-preview/list

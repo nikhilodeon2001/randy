@@ -130,7 +130,7 @@ async function generateProfileFromContent(content, sourceType) {
     console.log(`🤖 Generating profile from ${sourceType} via ${provider} (${content.length} characters)`);
 
     const systemContent = 'You are a helpful assistant that creates structured caller profiles for an AI phone assistant.';
-    const userContent = `You are creating a caller profile for an AI phone assistant named Doug. This profile will be used when someone calls, so Doug knows who they are and how to interact with them.
+    const userContent = `You are creating a caller profile for an AI phone assistant named Randy. This profile will be used when someone calls, so Randy knows who they are and how to interact with them.
 
 Based on the following ${sourceType === 'url' ? 'information scraped from a website' : 'information provided by the user'}, create a structured caller profile.
 
@@ -152,7 +152,7 @@ Known Details:
 - [Any other relevant details]
 
 Strategy:
-- [How Doug should greet them]
+- [How Randy should greet them]
 - [Tone to use (professional, friendly, casual, etc.)]
 - [Key things to mention or reference]
 

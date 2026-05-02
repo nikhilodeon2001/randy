@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Sample text for voice preview
-const PREVIEW_TEXT = "Hi, this is Doug, Nikhil's AI assistant. How can I help you today?";
+const PREVIEW_TEXT = "Hi, this is Randy, Nikhil's AI assistant. How can I help you today?";
 
 // All Deepgram Aura-2 English voices from official docs
 const ALL_AURA_VOICES = [

@@ -99,7 +99,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>🤖 Doug - AI Call Handler</h1>
+        <h1>🤖 Randy - AI Call Handler</h1>
         <p>Monitor AI conversations with spam callers in real-time</p>
 
         <nav className="tab-nav">

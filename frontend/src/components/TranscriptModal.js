@@ -27,7 +27,7 @@ function TranscriptModal({ transcript, onClose }) {
                 >
                   <div className="message-header">
                     <span className="message-role">
-                      {message.role === 'user' ? '👤 Caller' : '🤖 Doug'}
+                      {message.role === 'user' ? '👤 Caller' : '🤖 Randy'}
                     </span>
                     <span className="message-timestamp">{formatTimestamp(message, index)}</span>
                   </div>

@@ -47,7 +47,7 @@ const dashboardAuth = basicAuth({
     [process.env.DASHBOARD_USERNAME || 'admin']: process.env.DASHBOARD_PASSWORD || 'password'
   },
   challenge: true, // Sends WWW-Authenticate header to prompt browser login
-  realm: 'Doug Dashboard',
+  realm: 'Randy Dashboard',
   unauthorizedResponse: (req) => {
     return 'Unauthorized: Authentication required to access the dashboard.';
   }
@@ -116,7 +116,7 @@ async function startServer() {
 
     // Start server
     server.listen(PORT, () => {
-      console.log(`🚀 Doug server running on port ${PORT}`);
+      console.log(`🚀 Randy server running on port ${PORT}`);
       console.log(`📱 Twilio webhook endpoint: /twilio/voice`);
       console.log(`🌐 Dashboard available at root URL`);
     });
