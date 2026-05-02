@@ -85,14 +85,8 @@ router.post('/voice', async (req, res) => {
     twiml.hangup();
   }
 
-  // Build final TwiML, injecting <Start><Record> before <Gather> for silent recording.
-  // start.record() doesn't exist in twilio@4.x SDK, so we inject the XML directly.
-  const callbackUrl = `${req.protocol}://${req.get('host')}/twilio/recording`;
-  const startRecord = `<Start><Record recordingStatusCallback="${callbackUrl}" recordingStatusCallbackMethod="POST"/></Start>`;
-  const twimlXml = twiml.toString().replace('<Gather', `${startRecord}<Gather`);
-
   res.type('text/xml');
-  res.send(twimlXml);
+  res.send(twiml.toString());
 });
 
 /**
