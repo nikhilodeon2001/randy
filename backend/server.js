@@ -14,6 +14,7 @@ const callsRoutes = require('./routes/calls');
 const { router: voiceRoutes } = require('./routes/voice');
 const { router: voicePreviewRoutes } = require('./routes/voicePreview');
 const profilesRoutes = require('./routes/profiles');
+const { router: providerRoutes } = require('./routes/provider');
 const { setupWebSocket } = require('./services/websocket');
 const db = require('./db');
 
@@ -73,6 +74,7 @@ app.use('/api/calls', callsRoutes);
 app.use('/api/voice', voiceRoutes);
 app.use('/api/voice-preview', voicePreviewRoutes);
 app.use('/api/profiles', profilesRoutes);
+app.use('/api/provider', providerRoutes);
 
 // Serve audio files (Deepgram-generated TTS)
 app.use('/audio', express.static(path.join(__dirname, 'audio')));

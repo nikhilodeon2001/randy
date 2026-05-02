@@ -1,10 +1,11 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const OpenAI = require('openai');
+const Anthropic = require('@anthropic-ai/sdk');
+const { getActiveProvider } = require('../routes/provider');
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 /**
  * Normalize phone number to E.164 format (+1XXXXXXXXXX)
@@ -117,16 +118,19 @@ async function scrapeUrl(url) {
 }
 
 /**
- * Generate profile from content using OpenAI
+ * Generate profile from content using active AI provider
  * @param {string} content - The text content to analyze
  * @param {string} sourceType - 'url' or 'text'
  * @returns {Promise<string>} - Generated profile text
  */
 async function generateProfileFromContent(content, sourceType) {
-  try {
-    console.log(`🤖 Generating profile from ${sourceType} (${content.length} characters)`);
+  const provider = getActiveProvider();
 
-    const prompt = `You are creating a caller profile for an AI phone assistant named Doug. This profile will be used when someone calls, so Doug knows who they are and how to interact with them.
+  try {
+    console.log(`🤖 Generating profile from ${sourceType} via ${provider} (${content.length} characters)`);
+
+    const systemContent = 'You are a helpful assistant that creates structured caller profiles for an AI phone assistant.';
+    const userContent = `You are creating a caller profile for an AI phone assistant named Doug. This profile will be used when someone calls, so Doug knows who they are and how to interact with them.
 
 Based on the following ${sourceType === 'url' ? 'information scraped from a website' : 'information provided by the user'}, create a structured caller profile.
 
@@ -157,29 +161,35 @@ Notes:
 
 Keep it concise but informative. Focus on information that would be useful for a personalized phone greeting and conversation.`;
 
-    const response = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4-turbo-preview',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful assistant that creates structured caller profiles for an AI phone assistant.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 1000
-    });
+    let generatedProfile;
 
-    const generatedProfile = response.choices[0].message.content.trim();
-    console.log(`✅ Generated profile (${generatedProfile.length} characters)`);
+    if (provider === 'anthropic') {
+      const response = await anthropic.messages.create({
+        model: process.env.ANTHROPIC_PROFILE_MODEL || 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: systemContent,
+        messages: [{ role: 'user', content: userContent }],
+        temperature: 0.7,
+      });
+      generatedProfile = response.content[0].text.trim();
+    } else {
+      const response = await openai.chat.completions.create({
+        model: process.env.OPENAI_PROFILE_MODEL || 'gpt-4-turbo-preview',
+        messages: [
+          { role: 'system', content: systemContent },
+          { role: 'user', content: userContent }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      });
+      generatedProfile = response.choices[0].message.content.trim();
+    }
 
+    console.log(`✅ Generated profile via ${provider} (${generatedProfile.length} characters)`);
     return generatedProfile;
 
   } catch (error) {
-    console.error('Error generating profile with OpenAI:', error);
+    console.error(`Error generating profile with ${provider}:`, error);
     throw new Error(`Failed to generate profile: ${error.message}`);
   }
 }
@@ -208,7 +218,7 @@ async function createProfile(phoneNumber, source, sourceType) {
       }
     }
 
-    // Generate profile using OpenAI
+    // Generate profile using active provider
     const profileContent = await generateProfileFromContent(content, sourceType);
 
     // Return profile data

@@ -4,38 +4,56 @@ A web application that uses AI to automatically handle spam calls while you moni
 
 ## Overview
 
-Randy is deployed on Heroku and connects to your Twilio phone number. When spam callers call your number, Randy's AI (powered by OpenAI GPT-4) answers and engages them in conversation while you watch the live transcript in your browser.
+Randy is deployed on Heroku and connects to your Twilio phone number. When spam callers call your number, Randy's AI (powered by OpenAI or Anthropic) answers and engages them in conversation while you watch the live transcript in your browser.
 
 ## Features
 
-- 🤖 **AI-Powered Conversations** - GPT-4 handles calls with customizable personalities
+- 🤖 **Dual AI Provider Support** - Switch between OpenAI and Anthropic from the dashboard
 - 📞 **Twilio Integration** - Seamless call handling via Twilio Voice API
 - 📊 **Live Dashboard** - Watch conversations happen in real-time
 - 💾 **Call History** - Review past calls and transcripts
 - 🔄 **Real-time Updates** - WebSocket-powered live transcript streaming
 - 🎭 **Multiple Personalities** - Choose from 5 AI personalities to confuse scammers
+- 🎤 **Voice Selection** - Pick from 53 Deepgram TTS voices, including randomized per-call selection
+- 🔖 **Caller Profiles** - Create personalized profiles so Randy knows who's calling
 
 ## Architecture
 
 ```
-Incoming Call → Twilio → Heroku Web App → OpenAI GPT-4
+Incoming Call → Twilio → Heroku Web App → OpenAI or Anthropic
                               ↓
                           MongoDB
                               ↓
                         WebSocket → Browser Dashboard
 ```
 
+## AI Providers
+
+Randy supports two AI providers, switchable live from the dashboard:
+
+| | OpenAI | Anthropic |
+|---|---|---|
+| **Live calls** | gpt-3.5-turbo | claude-haiku-4-5-20251001 |
+| **Profile generation** | gpt-4-turbo-preview | claude-sonnet-4-6 |
+
+Both providers use a fast model for real-time call responses and a higher-quality model for generating caller profiles. The provider can be toggled anytime from the dashboard — it takes effect on the next incoming call.
+
 ## Project Structure
 
 ```
-webapp/
+randy/
 ├── backend/                 # Node.js/Express server
 │   ├── server.js           # Main server file
 │   ├── routes/             # API routes
 │   │   ├── twilio.js      # Twilio webhooks
-│   │   └── calls.js       # Call management API
+│   │   ├── calls.js       # Call management API
+│   │   ├── voice.js       # Voice model selection
+│   │   ├── provider.js    # AI provider toggle
+│   │   └── profiles.js    # Caller profile management
 │   ├── services/           # Business logic
-│   │   ├── callHandler.js # AI conversation handler
+│   │   ├── callHandler.js # AI conversation handler (OpenAI + Anthropic)
+│   │   ├── profileGenerator.js # Profile generation from URLs/text
+│   │   ├── ttsService.js  # Deepgram TTS
 │   │   └── websocket.js   # Real-time updates
 │   └── db/                 # Database layer
 │       └── index.js        # MongoDB queries
@@ -44,8 +62,11 @@ webapp/
 │   ├── src/
 │   │   ├── App.js          # Main app component
 │   │   └── components/     # React components
-│   │       ├── LiveCall.js # Live call monitor
-│   │       └── CallHistory.js # Past calls
+│   │       ├── LiveCall.js       # Live call monitor
+│   │       ├── CallHistory.js    # Past calls
+│   │       ├── ProviderSelector.js # OpenAI/Anthropic toggle
+│   │       ├── VoiceSelector.js  # TTS voice picker
+│   │       └── ProfileMaker.js   # Caller profile creator
 │   └── public/
 │
 ├── Procfile                 # Heroku process file
@@ -58,16 +79,15 @@ webapp/
 ### Prerequisites
 
 - Node.js 18+
-- MongoDB (or MongoDB Atlas)
+- MongoDB Atlas cluster
 - Twilio account with phone number
-- OpenAI API key
+- OpenAI API key and/or Anthropic API key
 - Heroku account (for deployment)
 
 ### Local Development
 
 1. **Install dependencies**:
    ```bash
-   cd webapp
    npm run install-all
    ```
 
@@ -78,17 +98,8 @@ webapp/
    # Edit .env with your API keys
    ```
 
-3. **Set up MongoDB** (if running locally):
+3. **Run development servers**:
    ```bash
-   # macOS with Homebrew
-   brew services start mongodb-community
-
-   # Or use a free MongoDB Atlas cluster and set MONGODB_URI in your .env
-   ```
-
-4. **Run development servers**:
-   ```bash
-   # From webapp/ directory
    npm run dev
    ```
 
@@ -96,13 +107,12 @@ webapp/
    - Backend server on `http://localhost:3000`
    - Frontend dashboard on `http://localhost:3001`
 
-5. **Expose to internet** (for Twilio webhooks):
+4. **Expose to internet** (for Twilio webhooks):
    ```bash
-   # Use ngrok to expose localhost
    ngrok http 3000
    ```
 
-   Copy the HTTPS URL and configure it in Twilio console.
+   Copy the HTTPS URL and configure it in the Twilio console.
 
 ### Deploy to Heroku
 
@@ -110,10 +120,10 @@ Follow the detailed guide in [HEROKU_DEPLOYMENT.md](./HEROKU_DEPLOYMENT.md)
 
 Quick version:
 ```bash
-cd webapp
 heroku create your-app-name
 heroku config:set MONGODB_URI=your_mongodb_atlas_uri
-heroku config:set OPENAI_API_KEY=your_key
+heroku config:set OPENAI_API_KEY=your_openai_key
+heroku config:set ANTHROPIC_API_KEY=your_anthropic_key
 heroku config:set TWILIO_ACCOUNT_SID=your_sid
 git push heroku main
 ```
@@ -122,14 +132,36 @@ git push heroku main
 
 ### Environment Variables
 
-**Backend** (`.env`):
+**Backend** (`backend/.env`):
 ```
 PORT=3000
-OPENAI_API_KEY=sk-...
+
+# Twilio
 TWILIO_ACCOUNT_SID=AC...
 TWILIO_AUTH_TOKEN=...
 TWILIO_PHONE_NUMBER=+1...
+
+# OpenAI
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-3.5-turbo
+OPENAI_PROFILE_MODEL=gpt-4-turbo-preview
+
+# Anthropic
+ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_MODEL=claude-haiku-4-5-20251001
+ANTHROPIC_PROFILE_MODEL=claude-sonnet-4-6
+
+# AI Provider ('openai' or 'anthropic') — overridden by dashboard toggle at runtime
+AI_PROVIDER=openai
+
+# MongoDB
 MONGODB_URI=mongodb+srv://...
+
+# Dashboard auth
+DASHBOARD_USERNAME=admin
+DASHBOARD_PASSWORD=your_password
+
+# Personality
 AI_PERSONALITY=confused_grandparent
 ```
 
@@ -153,106 +185,80 @@ heroku config:set AI_PERSONALITY=conspiracy_theorist
 - `POST /twilio/voice` - Incoming call webhook
 - `POST /twilio/gather` - Speech recognition webhook
 - `POST /twilio/status` - Call status updates
-- `POST /twilio/fallback` - Error fallback
+- `POST /twilio/recording` - Recording status callback
 
-### API Routes
+### Call Management
 - `GET /api/calls` - Get all call records
 - `GET /api/calls/:callSid` - Get specific call
 - `GET /api/calls/:callSid/transcript` - Get call transcript
 - `DELETE /api/calls/:callSid` - Delete call record
 
+### AI Provider
+- `GET /api/provider` - Get active AI provider
+- `POST /api/provider` - Switch provider (`{ "provider": "openai" | "anthropic" }`)
+
+### Voice
+- `GET /api/voice/models` - List available TTS voices
+- `POST /api/voice/change` - Change voice for active call
+- `GET /api/voice/default` - Get default voice
+- `POST /api/voice/default` - Set default voice
+
+### Profiles
+- `GET /api/profiles` - List caller profiles
+- `POST /api/profiles` - Create caller profile from URL or text
+- `DELETE /api/profiles/:phone` - Delete a profile
+
 ### WebSocket Events
 - `call:started` - New call begins
 - `call:transcript` - Transcript update
 - `call:ended` - Call completed
-
-## Testing
-
-### Test Locally
-
-1. Start the app: `npm run dev`
-2. Expose via ngrok: `ngrok http 3000`
-3. Configure Twilio webhook to ngrok URL
-4. Call your Twilio number
-5. Watch the dashboard at `http://localhost:3001`
-
-### Test on Heroku
-
-1. Deploy app to Heroku
-2. Configure Twilio webhook to Heroku URL
-3. Call your Twilio number
-4. Open Heroku app URL in browser
-
-## Monitoring
-
-### View Logs
-```bash
-# Real-time logs
-heroku logs --tail
-
-# Filter for errors
-heroku logs --tail | grep ERROR
-```
-
-### Database
-```bash
-# Connect via mongosh using your MONGODB_URI
-mongosh "$MONGODB_URI"
-
-# View calls
-db.calls.find().sort({ startTime: -1 }).limit(10)
-
-# View transcripts
-db.transcripts.find()
-```
+- `voice:changed` - Voice changed during call
 
 ## Costs
 
 ### Heroku
-- Free tier: 550-1000 dyno hours/month
-- App sleeps after 30 min inactivity
-- Upgrade to Hobby ($7/mo) for 24/7 uptime
+- Eco dyno: ~$5/month for 24/7 uptime
 
 ### Twilio
 - Phone number: ~$1/month
 - Incoming calls: ~$0.0085/min
 - Estimated: $0.03-0.10 per 3-5 min call
 
-### OpenAI
-- GPT-4: ~$0.10-0.30 per call
-- Depends on conversation length
+### AI (per call, ~3-5 min)
+- OpenAI gpt-3.5-turbo: ~$0.01-0.05
+- Anthropic claude-haiku: ~$0.01-0.03
 
-**Total per call: ~$0.15-0.40**
+### Deepgram TTS
+- ~$0.01-0.02 per call
+
+**Total per call: ~$0.05-0.20**
 
 ## Troubleshooting
 
 ### "Cannot connect to database"
 ```bash
-# Verify MONGODB_URI is set
 heroku config:get MONGODB_URI
-
-# Check app logs for connection errors
 heroku logs --tail | grep mongo
 ```
 
 ### "Twilio webhook timeout"
-- Check Heroku logs for errors
-- Ensure app is running: `heroku ps`
-- Verify webhook URL is correct (HTTPS)
+```bash
+heroku logs --tail
+heroku ps  # check dyno is running
+```
+
+### AI provider errors
+```bash
+# Check which provider is active
+curl -u admin:password https://your-app.herokuapp.com/api/provider
+
+# View error logs
+heroku logs --tail | grep "openai\|anthropic"
+```
 
 ### "No transcript updates"
 - Check WebSocket connection in browser console
-- Ensure backend is running
-- Verify CORS settings
-
-### "OpenAI API errors"
-```bash
-# Check API key is set
-heroku config:get OPENAI_API_KEY
-
-# View error logs
-heroku logs --tail | grep OpenAI
-```
+- Verify CORS settings (`FRONTEND_URL` env var)
 
 ## Development Roadmap
 
@@ -260,31 +266,17 @@ heroku logs --tail | grep OpenAI
 - [x] Live transcript dashboard
 - [x] Call history
 - [x] Multiple AI personalities
+- [x] Voice selection (53 Deepgram voices)
+- [x] Caller profiles for personalized greetings
+- [x] OpenAI + Anthropic provider toggle
 - [ ] Call recordings playback
 - [ ] Authentication/user accounts
-- [ ] Custom AI personality training
 - [ ] Analytics dashboard
 - [ ] Multi-language support
-
-## Contributing
-
-Pull requests welcome! Areas to improve:
-- Better UI/UX for dashboard
-- Additional AI personalities
-- Voice cloning integration
-- Mobile-responsive design
-- Performance optimizations
 
 ## License
 
 MIT
-
-## Support
-
-For issues:
-- Check [HEROKU_DEPLOYMENT.md](./HEROKU_DEPLOYMENT.md) for deployment help
-- Review Heroku logs: `heroku logs --tail`
-- Check Twilio debugger: https://www.twilio.com/console/debugger
 
 ---
 

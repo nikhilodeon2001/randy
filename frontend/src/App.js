@@ -6,6 +6,7 @@ import CallHistory from './components/CallHistory';
 import VoiceSelector from './components/VoiceSelector';
 import VoicePreview from './components/VoicePreview';
 import ProfileMaker from './components/ProfileMaker';
+import ProviderSelector from './components/ProviderSelector';
 
 // In production, connect to same origin (Heroku serves both frontend and backend)
 // In development, connect to localhost:3000
@@ -132,6 +133,8 @@ function App() {
                 transcript={transcript}
               />
             )}
+
+            <ProviderSelector />
 
             <VoiceSelector
               callSid={activeCall?.callSid || null}

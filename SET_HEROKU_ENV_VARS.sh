@@ -2,27 +2,47 @@
 
 # Randy - Set Heroku Environment Variables
 # Run this AFTER deploying to Heroku
+# Replace all placeholder values with your actual credentials
 
-echo "Setting environment variables for randy-ai-assistant..."
+APP=randy-ai-assistant
 
-# Replace these with your actual values!
-heroku config:set OPENAI_API_KEY=YOUR_OPENAI_API_KEY_HERE -a randy-ai-assistant
-heroku config:set OPENAI_MODEL=gpt-4-turbo-preview -a randy-ai-assistant
-heroku config:set OPENAI_TTS_VOICE=alloy -a randy-ai-assistant
-heroku config:set OPENAI_TTS_SPEED=1.0 -a randy-ai-assistant
+echo "Setting environment variables for $APP..."
 
-heroku config:set TWILIO_ACCOUNT_SID=YOUR_TWILIO_ACCOUNT_SID -a randy-ai-assistant
-heroku config:set TWILIO_AUTH_TOKEN=YOUR_TWILIO_AUTH_TOKEN -a randy-ai-assistant
-heroku config:set TWILIO_PHONE_NUMBER=YOUR_TWILIO_PHONE_NUMBER -a randy-ai-assistant
+# --- Twilio ---
+heroku config:set TWILIO_ACCOUNT_SID=YOUR_TWILIO_ACCOUNT_SID -a $APP
+heroku config:set TWILIO_AUTH_TOKEN=YOUR_TWILIO_AUTH_TOKEN -a $APP
+heroku config:set TWILIO_PHONE_NUMBER=YOUR_TWILIO_PHONE_NUMBER -a $APP
 
-heroku config:set NODE_ENV=production -a randy-ai-assistant
-heroku config:set AI_PERSONALITY=confused_grandparent -a randy-ai-assistant
+# --- OpenAI ---
+heroku config:set OPENAI_API_KEY=YOUR_OPENAI_API_KEY -a $APP
+heroku config:set OPENAI_MODEL=gpt-3.5-turbo -a $APP
+heroku config:set OPENAI_PROFILE_MODEL=gpt-4-turbo-preview -a $APP
 
-# Frontend URL (your Heroku app URL)
-heroku config:set FRONTEND_URL=https://randy-ai-assistant.herokuapp.com -a randy-ai-assistant
+# --- Anthropic ---
+heroku config:set ANTHROPIC_API_KEY=YOUR_ANTHROPIC_API_KEY -a $APP
+heroku config:set ANTHROPIC_MODEL=claude-haiku-4-5-20251001 -a $APP
+heroku config:set ANTHROPIC_PROFILE_MODEL=claude-sonnet-4-6 -a $APP
+
+# --- AI Provider (can also be toggled live from the dashboard) ---
+heroku config:set AI_PROVIDER=openai -a $APP
+
+# --- MongoDB ---
+heroku config:set MONGODB_URI=YOUR_MONGODB_URI -a $APP
+
+# --- App settings ---
+heroku config:set NODE_ENV=production -a $APP
+heroku config:set AI_PERSONALITY=confused_grandparent -a $APP
+heroku config:set APP_URL=https://$APP.herokuapp.com -a $APP
+
+# --- Dashboard auth ---
+heroku config:set DASHBOARD_USERNAME=YOUR_USERNAME -a $APP
+heroku config:set DASHBOARD_PASSWORD=YOUR_PASSWORD -a $APP
+
+# --- CORS ---
+heroku config:set FRONTEND_URL=https://$APP.herokuapp.com -a $APP
 
 echo ""
 echo "✅ Environment variables set!"
 echo ""
 echo "Verify with:"
-echo "heroku config -a randy-ai-assistant"
+echo "heroku config -a $APP"

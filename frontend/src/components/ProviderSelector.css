@@ -1,0 +1,80 @@
+.provider-selector {
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.provider-selector-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #667eea;
+}
+
+.provider-selector-header h3 {
+  color: #667eea;
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.provider-selector-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.provider-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.provider-btn {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid #444;
+  background: #0a0a0a;
+  color: #888;
+}
+
+.provider-btn:hover:not(:disabled):not(.active) {
+  border-color: #667eea;
+  color: #fff;
+  background: #111;
+}
+
+.provider-btn.active {
+  border-color: #2ecc71;
+  background: #0d2b1a;
+  color: #2ecc71;
+}
+
+.provider-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.provider-hint {
+  text-align: center;
+  color: #888;
+  font-size: 0.85rem;
+  margin: 0;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .provider-selector {
+    padding: 1rem;
+  }
+
+  .provider-buttons {
+    flex-direction: column;
+  }
+}

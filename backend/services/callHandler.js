@@ -1,9 +1,11 @@
 const OpenAI = require('openai');
+const Anthropic = require('@anthropic-ai/sdk');
 const db = require('../db');
 const ttsService = require('./ttsService');
 const { getVoiceForCall, setVoiceForCall, getDefaultVoice } = require('../routes/voice');
 const { loadCallerProfile } = require('./callerProfiles');
 const { registerActiveCall, unregisterActiveCall } = require('./websocket');
+const { getActiveProvider } = require('../routes/provider');
 const twilio = require('twilio');
 
 class CallHandler {
@@ -14,14 +16,16 @@ class CallHandler {
     this.io = io;
     this.conversationHistory = [];
     this.startTime = new Date();
-    this.recordingStarted = false; // Track if recording has been started
-    this.callerProfile = null; // Will be loaded in start()
-    this.isVoicemailOnly = false; // Will be set in start() based on profile
+    this.recordingStarted = false;
+    this.callerProfile = null;
+    this.isVoicemailOnly = false;
 
-    // Initialize OpenAI client
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
-    });
+    // Snapshot the active provider at call start so it stays consistent for the call's lifetime
+    this.provider = getActiveProvider();
+
+    // Initialize AI clients
+    this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    this.anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
     // Initialize Twilio client
     this.twilioClient = twilio(
@@ -31,10 +35,10 @@ class CallHandler {
 
     // AI Configuration
     this.personality = process.env.AI_PERSONALITY || 'confused_grandparent';
-    this.model = process.env.OPENAI_MODEL || 'gpt-3.5-turbo'; // Fastest model for minimal latency
+    this.openaiModel = process.env.OPENAI_MODEL || 'gpt-3.5-turbo';
+    this.anthropicModel = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001';
 
     // Set voice for this call to the current default
-    // If default is a random voice, resolve it once now (per-call randomization)
     const defaultVoice = getDefaultVoice();
     if (defaultVoice.startsWith('random-')) {
       const resolvedVoice = ttsService.selectRandomVoice(defaultVoice);
@@ -43,6 +47,8 @@ class CallHandler {
     } else {
       setVoiceForCall(this.callSid, defaultVoice);
     }
+
+    console.log(`🤖 Call ${this.callSid} using provider: ${this.provider}`);
   }
 
   /**
@@ -51,7 +57,6 @@ class CallHandler {
   async start() {
     console.log(`Starting call handler for ${this.callSid}`);
 
-    // Load caller profile if it exists
     this.callerProfile = await loadCallerProfile(this.fromNumber);
 
     if (this.callerProfile) {
@@ -62,7 +67,6 @@ class CallHandler {
       this.isVoicemailOnly = true;
     }
 
-    // Save call to database
     await db.createCall({
       callSid: this.callSid,
       fromNumber: this.fromNumber,
@@ -71,15 +75,12 @@ class CallHandler {
       status: 'in-progress'
     });
 
-    // Register as active call
     const callData = {
       callSid: this.callSid,
       from: this.fromNumber,
       startTime: this.startTime
     };
     registerActiveCall(this.callSid, callData);
-
-    // Emit to dashboard
     this.io.emit('call:started', callData);
   }
 
@@ -87,10 +88,7 @@ class CallHandler {
    * Start recording - called after call is answered
    */
   async startRecording() {
-    // Only start recording once
-    if (this.recordingStarted) {
-      return;
-    }
+    if (this.recordingStarted) return;
 
     try {
       const appUrl = process.env.APP_URL || 'https://randy-ai-assistant.herokuapp.com';
@@ -111,12 +109,8 @@ class CallHandler {
    * Get initial greeting
    */
   async getGreeting() {
-    // Always generate LLM greeting (personalized for known callers, generic for unknown)
     const greeting = await this.generateGreeting();
-
-    // Add to conversation history
     this.addMessage('assistant', greeting);
-
     return greeting;
   }
 
@@ -126,17 +120,16 @@ class CallHandler {
   async generateGreeting() {
     const startTime = Date.now();
 
-    // For unknown callers, return simple voicemail message (no LLM needed)
     if (!this.callerProfile) {
       console.log(`📞 Unknown caller - using simple voicemail greeting`);
       return "Please leave a message after the beep.";
     }
 
-    // For known callers, generate personalized greeting
     try {
-      console.log(`🎨 Generating greeting for ${this.fromNumber}...`);
+      console.log(`🎨 Generating greeting for ${this.fromNumber} via ${this.provider}...`);
 
-      const prompt = `You answer phone calls for Nikhil. Based on the caller profile below, generate a warm, HIGHLY personalized greeting (2-3 sentences).
+      const systemContent = 'You answer phone calls for Nikhil. Generate varied, natural greetings.';
+      const userContent = `You answer phone calls for Nikhil. Based on the caller profile below, generate a warm, HIGHLY personalized greeting (2-3 sentences).
 
 CALLER PROFILE:
 ${this.callerProfile}
@@ -161,18 +154,9 @@ Example styles (pick ONE approach):
 
 Generate ONLY ONE greeting - output the text directly without numbering or bullet points. Make it feel genuinely personal by referencing specific details from the profile.`;
 
-      const completion = await this.openai.chat.completions.create({
-        model: this.model,
-        messages: [
-          { role: 'system', content: 'You answer phone calls for Nikhil. Generate varied, natural greetings.' },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.9,
-        max_tokens: 80
-      });
+      const greeting = await this.callLLM(systemContent, userContent, 80, 0.9);
 
       const duration = Date.now() - startTime;
-      const greeting = completion.choices[0]?.message?.content?.trim() || "Hi! How can I help you?";
       console.log(`✅ Greeting generated in ${duration}ms: "${greeting}"`);
 
       return greeting;
@@ -211,17 +195,12 @@ Generate ONLY ONE greeting - output the text directly without numbering or bulle
   async processUserSpeech(speechText) {
     console.log(`Processing speech for ${this.callSid}: "${speechText}"`);
 
-    // Add user message to history
     this.addMessage('user', speechText);
 
-    // Generate AI response
     const aiResponse = await this.generateResponse();
 
-    // Add AI response to history
     this.addMessage('assistant', aiResponse);
 
-    // Save to database and emit to dashboard in background (non-blocking)
-    // Don't await these - they can happen async while we generate TTS
     db.updateTranscript(this.callSid, this.conversationHistory).catch(err => {
       console.error('Error updating transcript:', err);
     });
@@ -235,49 +214,76 @@ Generate ONLY ONE greeting - output the text directly without numbering or bulle
   }
 
   /**
-   * Generate AI response using GPT-4
+   * Generate AI response using active provider
    */
   async generateResponse() {
     const startTime = Date.now();
     try {
       const systemPrompt = this.getSystemPrompt();
-
       // Only keep last 6 messages (3 exchanges) to reduce latency
       const recentHistory = this.conversationHistory.slice(-6);
 
-      const messages = [
-        { role: 'system', content: systemPrompt },
-        ...recentHistory.map(msg => ({
-          role: msg.role,
-          content: msg.content
-        }))
-      ];
+      const modelName = this.provider === 'anthropic' ? this.anthropicModel : this.openaiModel;
+      console.log(`⏱️ Starting ${this.provider} request (${modelName}) for ${this.callSid}...`);
 
-      console.log(`⏱️ Starting GPT request (${this.model}) for ${this.callSid}...`);
-      const completion = await this.openai.chat.completions.create({
-        model: this.model,
-        messages: messages,
-        temperature: 0.8,
-        max_tokens: 60, // Increased for more complete responses (2-3 sentences)
-      });
+      const response = await this.callLLM(systemPrompt, null, 60, 0.8, recentHistory);
 
       const duration = Date.now() - startTime;
-      const response = completion.choices[0]?.message?.content || "I didn't catch that. Could you repeat?";
-      console.log(`✅ GPT completed in ${duration}ms: "${response}"`);
+      console.log(`✅ ${this.provider} completed in ${duration}ms: "${response}"`);
 
       return response;
     } catch (error) {
       const duration = Date.now() - startTime;
-      console.error(`❌ GPT error after ${duration}ms:`, error);
+      console.error(`❌ ${this.provider} error after ${duration}ms:`, error);
       return "Sorry, could you say that again?";
     }
+  }
+
+  /**
+   * Unified LLM call — dispatches to OpenAI or Anthropic based on this.provider.
+   * For generateGreeting: pass systemContent + userContent (no history).
+   * For generateResponse: pass systemContent + null userContent + history.
+   */
+  async callLLM(systemContent, userContent, maxTokens, temperature, history = []) {
+    if (this.provider === 'anthropic') {
+      const messages = history.length > 0
+        ? history.map(m => ({ role: m.role, content: m.content }))
+        : [{ role: 'user', content: userContent }];
+
+      const result = await this.anthropic.messages.create({
+        model: this.anthropicModel,
+        max_tokens: maxTokens,
+        // Cache the system prompt to reduce latency on repeated calls with same instructions
+        system: [{ type: 'text', text: systemContent, cache_control: { type: 'ephemeral' } }],
+        messages,
+        temperature,
+      });
+
+      return result.content[0]?.text?.trim() || "I didn't catch that. Could you repeat?";
+    }
+
+    // OpenAI path
+    const messages = [
+      { role: 'system', content: systemContent },
+      ...(history.length > 0
+        ? history.map(m => ({ role: m.role, content: m.content }))
+        : [{ role: 'user', content: userContent }])
+    ];
+
+    const completion = await this.openai.chat.completions.create({
+      model: this.openaiModel,
+      messages,
+      temperature,
+      max_tokens: maxTokens,
+    });
+
+    return completion.choices[0]?.message?.content?.trim() || "I didn't catch that. Could you repeat?";
   }
 
   /**
    * Get system prompt based on caller profile
    */
   getSystemPrompt() {
-    // If caller has a profile, use personalized system prompt
     if (this.callerProfile) {
       return `You answer phone calls for Nikhil. This is someone he knows. Use the profile information below to have a natural, personalized conversation.
 
@@ -294,7 +300,6 @@ YOUR ROLE:
 If they want to leave a message for Nikhil, let them know you'll pass it along. If they just want to chat, have a friendly conversation using what you know about them from the profile.`;
     }
 
-    // For unknown callers, use friendly prompt
     return `You answer phone calls for Nikhil.
 
 YOUR ROLE:
@@ -331,9 +336,8 @@ If they seem like a sales call or spam, you can politely engage and waste their 
     console.log(`Ending call handler for ${this.callSid}`);
 
     const endTime = new Date();
-    const duration = Math.floor((endTime - this.startTime) / 1000); // duration in seconds
+    const duration = Math.floor((endTime - this.startTime) / 1000);
 
-    // Update call in database
     await db.updateCall(this.callSid, {
       endTime,
       duration,
@@ -341,10 +345,8 @@ If they seem like a sales call or spam, you can politely engage and waste their 
       messageCount: this.conversationHistory.length
     });
 
-    // Unregister active call
     unregisterActiveCall(this.callSid);
 
-    // Emit to dashboard
     this.io.emit('call:ended', {
       callSid: this.callSid,
       duration,
