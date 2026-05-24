@@ -34,7 +34,7 @@ Randy supports two AI providers, switchable live from the dashboard:
 | | OpenAI | Anthropic |
 |---|---|---|
 | **Live calls** | gpt-3.5-turbo | claude-haiku-4-5-20251001 |
-| **Profile generation** | gpt-4-turbo-preview | claude-sonnet-4-6 |
+| **Profile generation** | gpt-4o | claude-sonnet-4-6 |
 
 Both providers use a fast model for real-time call responses and a higher-quality model for generating caller profiles. The provider can be toggled anytime from the dashboard — it takes effect on the next incoming call.
 
@@ -144,7 +144,7 @@ TWILIO_PHONE_NUMBER=+1...
 # OpenAI
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-3.5-turbo
-OPENAI_PROFILE_MODEL=gpt-4-turbo-preview
+OPENAI_PROFILE_MODEL=gpt-4o
 
 # Anthropic
 ANTHROPIC_API_KEY=sk-ant-...

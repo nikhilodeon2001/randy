@@ -174,7 +174,7 @@ Keep it concise but informative. Focus on information that would be useful for a
       generatedProfile = response.content[0].text.trim();
     } else {
       const response = await openai.chat.completions.create({
-        model: process.env.OPENAI_PROFILE_MODEL || 'gpt-4-turbo-preview',
+        model: process.env.OPENAI_PROFILE_MODEL || 'gpt-4o',
         messages: [
           { role: 'system', content: systemContent },
           { role: 'user', content: userContent }

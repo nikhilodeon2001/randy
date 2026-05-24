@@ -49,7 +49,7 @@ heroku config:set TWILIO_PHONE_NUMBER=+1234567890
 # OpenAI
 heroku config:set OPENAI_API_KEY=your_openai_api_key
 heroku config:set OPENAI_MODEL=gpt-3.5-turbo
-heroku config:set OPENAI_PROFILE_MODEL=gpt-4-turbo-preview
+heroku config:set OPENAI_PROFILE_MODEL=gpt-4o
 
 # Anthropic
 heroku config:set ANTHROPIC_API_KEY=your_anthropic_api_key
@@ -123,7 +123,7 @@ The dashboard has an **AI Provider** toggle (OpenAI / Anthropic). Switching take
 
 | | Live calls | Profile generation |
 |---|---|---|
-| **OpenAI** | gpt-3.5-turbo | gpt-4-turbo-preview |
+| **OpenAI** | gpt-3.5-turbo | gpt-4o |
 | **Anthropic** | claude-haiku-4-5-20251001 | claude-sonnet-4-6 |
 
 ## Viewing Logs

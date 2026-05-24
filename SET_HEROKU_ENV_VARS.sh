@@ -16,7 +16,7 @@ heroku config:set TWILIO_PHONE_NUMBER=YOUR_TWILIO_PHONE_NUMBER -a $APP
 # --- OpenAI ---
 heroku config:set OPENAI_API_KEY=YOUR_OPENAI_API_KEY -a $APP
 heroku config:set OPENAI_MODEL=gpt-3.5-turbo -a $APP
-heroku config:set OPENAI_PROFILE_MODEL=gpt-4-turbo-preview -a $APP
+heroku config:set OPENAI_PROFILE_MODEL=gpt-4o -a $APP
 
 # --- Anthropic ---
 heroku config:set ANTHROPIC_API_KEY=YOUR_ANTHROPIC_API_KEY -a $APP
